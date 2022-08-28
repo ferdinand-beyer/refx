@@ -1,7 +1,7 @@
 (ns top.signal
-  (:require [uix.core.alpha :as uix]
-            [top.store :refer [store]]))
+  (:require [uix.core.alpha :as uix]))
 
+;; TODO: utils?
 (defn uid
   ([] (goog/getUid #js {}))
   ([obj] (goog/getUid obj)))
@@ -37,8 +37,25 @@
   (-remove-listener [a k]
     (remove-watch a k)))
 
+(defn signal? [x]
+  (satisfies? ISignal x))
+
+(defn- map-signals [f signals]
+  (cond
+    (sequential? signals) (mapv f signals)
+    (map? signals) (update-vals signals f)
+    (signal? signals) (f signals)
+    :else nil))
+
+(defn- run-signals! [f signals]
+  (map-signals f signals)
+  nil)
+
+(defn- compute-signal-value [inputs compute-fn]
+  (compute-fn (map-signals -value inputs)))
+
 ;; TODO: Is this a "subscription"?
-(deftype Signal [inputs compute-fn on-dispose ^:mutable value ^:mutable listeners]
+(deftype Signal [inputs compute-fn ^:mutable on-dispose ^:mutable value ^:mutable listeners]
   Object
   (equiv [this other]
     (-equiv this other))
@@ -46,17 +63,16 @@
   (init! [this]
     (let [k (uid this)
           f #(.update! this)]
-      (doseq [s inputs]
-        (-add-listener s k f))))
+      (run-signals! #(-add-listener % k f) inputs)))
 
   (dispose! [this]
     (let [k (uid this)]
-      (doseq [s inputs]
-        (-remove-listener s k))
-      (on-dispose)))
+      (run-signals! #(-remove-listener % k) inputs)
+      (when on-dispose
+        (on-dispose this))))
 
   (update! [this]
-    (let [new-val (compute-fn (map -value inputs))]
+    (let [new-val (compute-signal-value inputs compute-fn)]
       (when (not= value new-val)
         (set! (.-value this) new-val)
         (doseq [[_ f] listeners]
@@ -81,51 +97,11 @@
       (when (empty? ls)
         (.dispose! this)))))
 
-(defn- create-signal [inputs compute-fn on-dispose]
-  (let [value (compute-fn (map -value inputs))]
+(defn make-signal [inputs compute-fn on-dispose]
+  (let [value (compute-signal-value inputs compute-fn)]
     (doto (Signal. inputs compute-fn on-dispose value nil)
       (.init!))))
 
-;; ----
-
-(defonce signal-cache (atom {}))
-
-(declare get-signal)
-
-;; TODO
-(defn- create-sig [query-v on-dispose]
-  (case (first query-v)
-    :store   store
-    :raw     (create-signal [store] (comp :counter first) on-dispose)
-    :counter (create-signal [(get-signal [:raw])] #(or (first %) 0) on-dispose)
-    :toggle  (create-signal [store] (fn [[store]]
-                                      (:toggle store))
-                            on-dispose)
-    ))
-
-(defn- remove-from-cache [query-v]
-  (swap! signal-cache dissoc query-v))
-
-(defn- get-signal [query-v]
-  (if-let [s (get @signal-cache query-v)]
-    s
-    (let [s (create-sig query-v #(remove-from-cache query-v))]
-      (swap! signal-cache assoc query-v s)
-      s)))
-
-(defn subscribe [query-v]
-  (uix/subscribe
-   (uix/memo (fn []
-               (let [k (uid)]
-                 {:get-current-value (fn [] (-value (get-signal query-v)))
-                  :subscribe (fn [callback]
-                               (let [signal (get-signal query-v)]
-                                 (-add-listener signal k callback)
-                                 #(-remove-listener signal k)))}))
-             [query-v])))
-
-;; ----
-
-(defonce handlers (atom {}))
-
-(defn register [id handler])
+;; TODO: This does not work on atoms, split protocols?
+(defn on-dispose [^Signal signal f]
+  (set! (.-on-dispose signal) f))

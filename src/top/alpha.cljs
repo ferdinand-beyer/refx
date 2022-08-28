@@ -1,10 +1,9 @@
 (ns top.alpha
-  (:require [uix.core.alpha :as uix]
-            [top.store :refer [store]]
-            [top.signal :as signal]))
+  (:require [top.store :refer [store]]
+            [top.subs :as subs]))
 
 (defn subscribe [query-v]
-  (signal/subscribe query-v))
+  (subs/subscribe query-v))
 
 ;; --- post -------------------------------------------------------------------
 
