@@ -2,10 +2,9 @@
   (:require [uix.core.alpha :as uix]
             [top.store :refer [store]]))
 
-(defonce ^:private -genkey-counter (atom 0))
-
-(defn genkey []
-  (swap! -genkey-counter inc))
+(defn uid
+  ([] (goog/getUid #js {}))
+  ([obj] (goog/getUid obj)))
 
 (defprotocol ISignal
   "Protocol for reactive values that we provide a React hook for."
@@ -18,11 +17,11 @@
   [signal]
   (uix/subscribe
    (uix/memo (fn []
-               {:get-current-value #(-value signal)
-                :subscribe (fn [callback]
-                             (let [k (genkey)]
+               (let [k (uid)]
+                 {:get-current-value #(-value signal)
+                  :subscribe (fn [callback]
                                (-add-listener signal k callback)
-                               #(-remove-listener signal k)))})
+                               #(-remove-listener signal k))}))
              [signal])))
 
 (extend-protocol ISignal
@@ -39,11 +38,22 @@
     (remove-watch a k)))
 
 ;; TODO: Is this a "subscription"?
-(deftype Signal [key inputs compute-fn on-dispose
-                 ^:mutable value ^:mutable listeners]
+(deftype Signal [inputs compute-fn on-dispose ^:mutable value ^:mutable listeners]
   Object
   (equiv [this other]
     (-equiv this other))
+
+  (init! [this]
+    (let [k (uid this)
+          f #(.update! this)]
+      (doseq [s inputs]
+        (-add-listener s k f))))
+
+  (dispose! [this]
+    (let [k (uid this)]
+      (doseq [s inputs]
+        (-remove-listener s k))
+      (on-dispose)))
 
   (update! [this]
     (let [new-val (compute-fn (map -value inputs))]
@@ -53,10 +63,10 @@
           (f)))))
 
   IEquiv
-  (-equiv [o other] (identical? o other))
+  (-equiv [this other] (identical? this other))
 
   IHash
-  (-hash [o] (goog/getUid o))
+  (-hash [this] (uid this))
 
   IDeref
   (-deref [_] value)
@@ -64,25 +74,17 @@
   ISignal
   (-value [_] value)
   (-add-listener [this k f]
-    (.info js/console "Added listener" key k)
     (set! (.-listeners this) (assoc listeners k f)))
   (-remove-listener [this k]
-    (.info js/console "Removed listener" key k)
-    (set! (.-listeners this) (dissoc listeners k))
-    (when (empty? listeners)
-      (.info js/console "Disposing signal" key)
-      (doseq [s inputs]
-        (-remove-listener s key))
-      (on-dispose))))
+    (let [ls (dissoc listeners k)]
+      (set! (.-listeners this) ls)
+      (when (empty? ls)
+        (.dispose! this)))))
 
 (defn- create-signal [inputs compute-fn on-dispose]
-  (let [key    (genkey)
-        value  (compute-fn (map -value inputs))
-        signal (Signal. key inputs compute-fn on-dispose value nil)
-        f      #(.update! signal)]
-    (doseq [s inputs]
-      (-add-listener s key f))
-    signal))
+  (let [value (compute-fn (map -value inputs))]
+    (doto (Signal. inputs compute-fn on-dispose value nil)
+      (.init!))))
 
 ;; ----
 
@@ -102,23 +104,20 @@
     ))
 
 (defn- remove-from-cache [query-v]
-  (swap! signal-cache dissoc query-v)
-  (.log js/console "Removed" (str query-v) "Cache size:" (count @signal-cache)))
+  (swap! signal-cache dissoc query-v))
 
 (defn- get-signal [query-v]
   (if-let [s (get @signal-cache query-v)]
     s
     (let [s (create-sig query-v #(remove-from-cache query-v))]
       (swap! signal-cache assoc query-v s)
-      (.log js/console "Added" (str query-v) (.-key s) "Cache size:" (count @signal-cache))
       s)))
 
 (defn subscribe [query-v]
   (uix/subscribe
    (uix/memo (fn []
-               (let [k (genkey)]
-                 {:get-current-value (fn []
-                                       (-value (get-signal query-v)))
+               (let [k (uid)]
+                 {:get-current-value (fn [] (-value (get-signal query-v)))
                   :subscribe (fn [callback]
                                (let [signal (get-signal query-v)]
                                  (-add-listener signal k callback)
