@@ -1,0 +1,15 @@
+.calva/
+.clj-kondo/
+.cpcache/
+.lsp/
+.portal/
+.shadow-cljs/
+.vscode/
+node_modules/
+
+/public/js
+
+.nrepl-port
+
+*.dylib
+*.log

@@ -1,0 +1,7 @@
+{:deps {:aliases [:dev]}
+ :dev-http {8000 "public"}
+ :builds {:dev
+          {:target :browser
+           :output-dir "public/js"
+           :asset-path "/js"
+           :modules {:core {:init-fn top-demo.core/init}}}}}
