@@ -70,6 +70,15 @@
   [query-v]
   (subs/sub query-v))
 
+(defn <-
+  "Like re-frame's `:<-` sugar, returns an `inputs-fn` for `reg-sub` that
+   subscribes to one or more query vectors."
+  ([query-v]
+   (fn [_] (subs/sub query-v)))
+  ([query-v & qs]
+   (let [qs (cons query-v qs)]
+     (fn [_] (mapv subs/sub qs)))))
+
 (defn subscribe [query-v]
   (subs/subscribe query-v))
 

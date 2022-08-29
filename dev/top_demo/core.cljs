@@ -9,10 +9,16 @@
    (:counter db 0)))
 
 (top/reg-sub
- :strange-counter
- (fn [] {:n (top/sub [:counter])})
- (fn [{:keys [n]} _]
+ :countdown
+ (top/<- [:counter])
+ (fn [n _]
    (- 100 n)))
+
+(top/reg-sub
+ :strange-counter
+ (top/<- [:counter] [:countdown])
+ (fn [[n m] _]
+   (if (odd? n) m n)))
 
 (top/reg-sub
  :toggle
