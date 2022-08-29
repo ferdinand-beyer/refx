@@ -26,13 +26,9 @@
 
 ;; --- signals ----------------------------------------------------------------
 
-;; re-frame: subscription
-;; Generalized: Some value that changes over time
-;; Atoms are signals
-;; Store/App DB: Just an atom
-;; Other signals: JavaScript intervals, ...
-;; Derived: Memoized version of input signals
-;; Reactive: Can be used with hooks in react, to update the UI when they change
-;; Context: Can read signals
-
-
+;; TODO: Provide means to compose input functions?
+(defn reg-sub
+  ([query-id compute-fn]
+   (reg-sub query-id (constantly store) compute-fn))
+  ([query-id inputs-fn compute-fn]
+   (subs/register query-id inputs-fn compute-fn)))

@@ -1,7 +1,5 @@
 (ns top.subs
-  (:require [goog.object :as gobj]
-            [top.log :as log]
-            [top.store :refer [store]]
+  (:require [top.log :as log]
             [uix.core.alpha :as uix]))
 
 ;; TODO: utils?
@@ -119,12 +117,12 @@
 (defonce registry (atom {}))
 
 (defn- create-sub [query-v]
-  (let [query-id   (first query-v)
-        handler-fn (get @registry query-id)]
-    (if (nil? handler-fn)
+  (let [query-id (first query-v)
+        handler  (get @registry query-id)]
+    (if (nil? handler)
       (do (log/error "no subscription handler registered for:" (str query-id))
           (make-sub nil #()))
-      (let [signal (handler-fn query-v)
+      (let [signal ((:compile handler) query-v)
             sub    (make-sub signal (partial cache-remove! query-v))]
         (cache-add! query-v sub)
         sub))))
@@ -156,29 +154,11 @@
                                  #(-remove-listener s k)))}))
              [query-v])))
 
-;; TODO: Support dynamic signals like this:
-;;   [(signal [:selected-id]) (fn [id] (signal [:data id]))]
-;; E.g. Support a chain of handlers
-;; - fn: [query-v] -> signals
-;; - fn: [vals query-v] -> signals
-;; - ...
-;; - fn: [vals query-v] -> value
-;;
-;; Syntactic sugar like re-frame's :<-, :-> and :=> are somewhat confusing
-;; and maybe better provided with helper functions?
+(defn- make-handler [query-id inputs-fn compute-fn]
+  {:id      query-id
+   :compile (fn [query-v]
+              (make-node (inputs-fn query-v) compute-fn))})
+
 (defn register
-  [query-id & fns]
-
-  )
-
-
-;; TODO :)
-(let [make (fn [query-id parent f]
-             (let [signal (make-node (sub parent) f)]
-               (gobj/set signal "query" (str query-id))
-               signal))]
-  (swap! registry assoc
-         :store   (constantly store)
-         :counter (fn [] (make :counter [:store] (fn [store]
-                                                   (:counter store 0))))
-         :toggle  (fn [] (make :toggle [:store] :toggle))))
+  [query-id inputs-fn compute-fn]
+  (swap! registry assoc query-id (make-handler query-id inputs-fn compute-fn)))

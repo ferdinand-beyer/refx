@@ -3,6 +3,16 @@
             [uix.dom.alpha :as uix.dom]
             [top.alpha :as top]))
 
+(top/reg-sub
+ :counter
+ (fn [db _]
+   (:counter db 0)))
+
+(top/reg-sub
+ :toggle
+ (fn [db _]
+   (:toggle db)))
+
 (def n "???")
 
 (defn the-label []
