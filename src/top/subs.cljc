@@ -2,21 +2,8 @@
   (:require [top.log :as log]
             [uix.core.alpha :as uix]))
 
-#?(:cljs
-   (defn uid
-     ([] (goog/getUid #js {}))
-     ([obj] (goog/getUid obj)))
-
-   :clj
-   (let [counter (atom 0)
-         cache   (atom {})]
-     (defn uid
-       ([] (swap! counter inc))
-       ([obj]
-        (or (get @cache obj)
-            (let [x (uid)]
-              (swap! cache assoc obj x)
-              x))))))
+(def object-uid #?(:cljs goog/getUid
+                   :clj  System/identityHashCode))
 
 (defprotocol ISignal
   "Protocol for signal types.
@@ -75,7 +62,7 @@
        (-equiv [this other] (identical? this other))
 
        IHash
-       (-hash [this] (uid this))])
+       (-hash [this] (object-uid this))])
 
   ISignal
   (-value [_]
@@ -84,15 +71,15 @@
     value)
   (-add-listener [this k f]
     (when (empty? listeners)
-      (let [k* (uid this)
-            f* #(.invalidate! this)]
-        (run-inputs! #(-add-listener % k* f*) inputs)))
+      (let [node-id    (object-uid this)
+            invalidate #(.invalidate! this)]
+        (run-inputs! #(-add-listener % node-id invalidate) inputs)))
     (set! listeners (assoc listeners k f)))
   (-remove-listener [this k]
     (set! listeners (dissoc listeners k))
     (when (empty? listeners)
-      (let [k* (uid this)]
-        (run-inputs! #(-remove-listener % k*) inputs)))))
+      (let [node-id (object-uid this)]
+        (run-inputs! #(-remove-listener % node-id) inputs)))))
 
 (defn make-node
   "Make a computational node, which implements ISignal."
@@ -115,16 +102,16 @@
 (defn- make-sub [signal dispose-fn]
   (Subscription. signal dispose-fn 0))
 
-(defonce cache (atom {}))
+(defonce sub-cache (atom {}))
 
 (defn- cache-lookup [query-v]
-  (get @cache query-v))
+  (get @sub-cache query-v))
 
 (defn- cache-add! [query-v sub]
-  (swap! cache assoc query-v sub))
+  (swap! sub-cache assoc query-v sub))
 
 (defn- cache-remove! [query-v sub]
-  (swap! cache (fn [cache]
+  (swap! sub-cache (fn [cache]
                  (if (identical? sub (get cache query-v))
                    (dissoc cache query-v)
                    cache))))
@@ -135,8 +122,8 @@
   (let [query-id (first query-v)
         handler  (get @registry query-id)]
     (if (nil? handler)
-      (do (log/error "no subscription handler registered for:" (str query-id))
-          (make-sub nil #()))
+      ;; Note that nil is a valid signal.
+      (log/error "no subscription handler registered for:" (str query-id))
       (let [signal ((:compile handler) query-v)
             sub    (make-sub signal (partial cache-remove! query-v))]
         (cache-add! query-v sub)
@@ -156,17 +143,23 @@
   (or (cache-lookup query-v)
       (create-sub query-v)))
 
+(let [counter (atom 0)]
+  (defn- sub-key []
+    (str "__sub_" (swap! counter inc))))
+
 (defn subscribe
   "React hook to subscribe to signals."
   [query-v]
   (uix/subscribe
    (uix/memo (fn []
-               (let [k (uid)]
-                 {:get-current-value (fn [] (-value (sub query-v)))
+               (let [k (sub-key)
+                     s (volatile! (delay (sub query-v)))]
+                 {:get-current-value (fn [] (-value @@s))
                   :subscribe (fn [callback]
-                               (let [s (sub query-v)]
-                                 (-add-listener s k callback)
-                                 #(-remove-listener s k)))}))
+                               (-add-listener @@s k callback)
+                               (fn []
+                                 (-remove-listener @@s k)
+                                 (vreset! s (delay (sub query-v)))))}))
              [query-v])))
 
 (defn- make-handler [query-id inputs-fn compute-fn]

@@ -18,5 +18,5 @@
 (defn set-timeout! [f _ms]
   (next-tick f))
 
-(defmacro log [level & args]
+(defmacro log [level args]
   `(log/log ~level ~@args))

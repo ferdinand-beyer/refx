@@ -22,5 +22,5 @@
    :warn  (.bind js/console.warn js/console)
    :error (.bind js/console.error js/console)})
 
-(defn log [level & args]
+(defn log [level args]
   (apply (loggers level) args))

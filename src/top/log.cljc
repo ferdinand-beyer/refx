@@ -2,13 +2,13 @@
   (:require [top.interop :as interop]))
 
 (defn debug [& args]
-  (interop/log :debug "top:" args))
+  (interop/log :debug (cons "top:" args)))
 
 (defn info [& args]
-  (interop/log :info "top:" args))
+  (interop/log :info (cons "top:" args)))
 
 (defn warn [& args]
-  (interop/log :warn "top:" args))
+  (interop/log :warn (cons "top:" args)))
 
 (defn error [& args]
-  (interop/log :error "top:" args))
+  (interop/log :error (cons "top:" args)))
