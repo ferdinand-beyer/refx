@@ -23,6 +23,8 @@
 
 ;; --- events -----------------------------------------------------------------
 
+;; TODO: Provide a registry of interceptors as well, so they can be referenced by ID.
+
 (def base-interceptors
   [cofx/inject-db effects/do-fx builtins/inject-global-interceptors])
 
