@@ -6,6 +6,9 @@
    :warn  (.bind js/console.warn js/console)
    :error (.bind js/console.error js/console)})
 
+(defn debug [& args]
+  (apply (:debug loggers) "top:" args))
+
 (defn warn [& args]
   (apply (:warn loggers) "top:" args))
 
