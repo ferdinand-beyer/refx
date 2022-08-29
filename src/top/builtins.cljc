@@ -57,63 +57,6 @@
               [context]
               (assoc-coeffect context :event (get-coeffect context :original-event)))))
 
-(defn db-handler->interceptor
-  "Returns an interceptor which wraps the kind of event handler given to `reg-event-db`.
-
-  These handlers take two arguments;  `db` and `event`, and they return `db`.
-
-      (fn [db event]
-         ....)
-
-  So, the interceptor wraps the given handler:
-     1. extracts two `:coeffects` keys: db and event
-     2. calls handler-fn
-     3. stores the db result back into context's `:effects`"
-  [handler-fn]
-  (->interceptor
-   :id     :db-handler
-   :before (fn db-handler-before
-             [context]
-             (let [{:keys [db event]} (get-coeffect context)]
-               (->> (handler-fn db event)
-                    (assoc-effect context :db))))))
-
-(defn fx-handler->interceptor
-  "Returns an interceptor which wraps the kind of event handler given to `reg-event-fx`.
-
-  These handlers take two arguments;  `coeffects` and `event`, and they return `effects`.
-
-      (fn [coeffects event]
-         {:db ...
-          :fx ...})
-
-   Wrap handler in an interceptor so it can be added to (the RHS) of a chain:
-     1. extracts `:coeffects`
-     2. call handler-fn giving coeffects
-     3. stores the result back into the `:effects`"
-  [handler-fn]
-  (->interceptor
-   :id     :fx-handler
-   :before (fn fx-handler-before
-             [context]
-             (let [{:keys [event] :as coeffects} (get-coeffect context)]
-               (->> (handler-fn coeffects event)
-                    (assoc context :effects))))))
-
-(defn ctx-handler->interceptor
-  "Returns an interceptor which wraps the kind of event handler given to `reg-event-ctx`.
-  These advanced handlers take one argument: `context` and they return a modified `context`.
-  Example:
-
-      (fn [context]
-         (enqueue context [more interceptors]))"
-  [handler-fn]
-  (->interceptor
-   :id     :ctx-handler
-   :before (fn ctx-handler-before
-             [context]
-             (handler-fn context))))
-
 (defn path
   [& args]
   (let [path (flatten args)]

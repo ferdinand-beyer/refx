@@ -9,6 +9,12 @@
    (:counter db 0)))
 
 (top/reg-sub
+ :strange-counter
+ (fn [] {:n (top/sub [:counter])})
+ (fn [{:keys [n]} _]
+   (- 100 n)))
+
+(top/reg-sub
  :toggle
  (fn [db _]
    (:toggle db)))
@@ -28,7 +34,7 @@
 (def n "???")
 
 (defn the-label []
-  (let [n (top/subscribe [:counter])
+  (let [n (top/subscribe [:strange-counter])
         ;
         ]
     [:p "You clicked " n " times."]))
@@ -37,13 +43,13 @@
   (let [n (top/subscribe [:counter])
         ;
         ]
-    [:button {:on-click #(top/post [:inc])}
+    [:button {:on-click #(top/dispatch [:inc])}
      "Click #" n]))
 
 (defn app []
   [:<>
    [:h1 "Hello!"]
-   [:button {:on-click #(top/post [:toggle])} "Toggle!"]
+   [:button {:on-click #(top/dispatch [:toggle])} "Toggle!"]
    (when (top/subscribe [:toggle])
      [the-label])
    [the-button]])

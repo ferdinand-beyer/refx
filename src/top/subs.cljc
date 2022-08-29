@@ -43,6 +43,7 @@
   (-add-listener [a k f] (add-watch a k f))
   (-remove-listener [a k] (remove-watch a k)))
 
+;; TODO: Only (when (signal? %))?
 (defn- map-inputs
   "Apply `f` to a node input value."
   [f inputs]
@@ -66,7 +67,7 @@
       (doseq [[key f] listeners]
         (f key this))))
 
-  @#?(:cljs
+  #?@(:cljs
       [(equiv [this other]
               (-equiv this other))
 

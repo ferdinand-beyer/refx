@@ -33,19 +33,19 @@
   ([id handler]
    (reg-event-db id nil handler))
   ([id interceptors handler]
-   (-reg-event id interceptors (builtins/db-handler->interceptor handler))))
+   (-reg-event id interceptors (events/db-handler->interceptor handler))))
 
 (defn reg-event-fx
   ([id handler]
    (reg-event-fx id nil handler))
   ([id interceptors handler]
-   (-reg-event id interceptors (builtins/fx-handler->interceptor handler))))
+   (-reg-event id interceptors (events/fx-handler->interceptor handler))))
 
 (defn reg-event-ctx
   ([id handler]
    (reg-event-ctx id nil handler))
   ([id interceptors handler]
-   (-reg-event id interceptors (builtins/ctx-handler->interceptor handler))))
+   (-reg-event id interceptors (events/ctx-handler->interceptor handler))))
 
 (defn clear-event
   ([]
@@ -56,13 +56,16 @@
 ;; --- subscriptions ----------------------------------------------------------
 
 ;; TODO: Provide means to compose input functions?
+;; ??? Can we make use of transducers?
 (defn reg-sub
   ([query-id compute-fn]
    (reg-sub query-id (constantly store) compute-fn))
   ([query-id inputs-fn compute-fn]
    (subs/register query-id inputs-fn compute-fn)))
 
-(defn sub [query-v]
+(defn sub
+  "Return a subscription to be used as an input in `reg-sub`."
+  [query-v]
   (subs/sub query-v))
 
 (defn subscribe [query-v]

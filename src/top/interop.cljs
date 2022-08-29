@@ -1,11 +1,11 @@
 (ns top.interop
-  (:require [goog.async :as gasync]))
+  (:require [goog.async.nextTick]))
 
 (def empty-queue #queue [])
 
-(def next-tick gasync/nextTick) ;; is there an equivalent in uix?
+(def next-tick goog.async.nextTick)
 
-(def after-render next-tick)
+(def after-render next-tick)  ;; is there an equivalent in uix?
 
 ;; Make sure the Google Closure compiler sees this as a boolean constant,
 ;; otherwise Dead Code Elimination won't happen in `:advanced` builds.
