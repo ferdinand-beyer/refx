@@ -13,6 +13,18 @@
  (fn [db _]
    (:toggle db)))
 
+(top/reg-event-db
+ :inc
+ (fn [db _]
+   (update db :counter inc)))
+
+(top/reg-event-db
+ :toggle
+ (fn [db _]
+   (update db :toggle not)))
+
+;; ----------------------------------------------------------------------------
+
 (def n "???")
 
 (defn the-label []

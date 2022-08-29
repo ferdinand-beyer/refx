@@ -2,10 +2,21 @@
   (:require [top.log :as log]
             [uix.core.alpha :as uix]))
 
-;; TODO: utils?
-(defn uid
-  ([] (goog/getUid #js {}))
-  ([obj] (goog/getUid obj)))
+#?(:cljs
+   (defn uid
+     ([] (goog/getUid #js {}))
+     ([obj] (goog/getUid obj)))
+
+   :clj
+   (let [counter (atom 0)
+         cache   (atom {})]
+     (defn uid
+       ([] (swap! counter inc))
+       ([obj]
+        (or (get @cache obj)
+            (let [x (uid)]
+              (swap! cache assoc obj x)
+              x))))))
 
 (defprotocol ISignal
   "Protocol for signal types.
@@ -26,7 +37,8 @@
   (-add-listener [_ _ _])
   (-remove-listener [_ _])
 
-  Atom
+  #?(:cljs Atom
+     :clj clojure.lang.Atom)
   (-value [a] @a)
   (-add-listener [a k f] (add-watch a k f))
   (-remove-listener [a k] (remove-watch a k)))
@@ -53,14 +65,16 @@
       (set! value INVALID)
       (doseq [[key f] listeners]
         (f key this))))
-  (equiv [this other]
-    (-equiv this other))
 
-  IEquiv
-  (-equiv [this other] (identical? this other))
+  @#?(:cljs
+      [(equiv [this other]
+              (-equiv this other))
 
-  IHash
-  (-hash [this] (uid this))
+       IEquiv
+       (-equiv [this other] (identical? this other))
+
+       IHash
+       (-hash [this] (uid this))])
 
   ISignal
   (-value [_]
@@ -162,3 +176,9 @@
 (defn register
   [query-id inputs-fn compute-fn]
   (swap! registry assoc query-id (make-handler query-id inputs-fn compute-fn)))
+
+(defn unregister
+  ([]
+   (reset! registry {}))
+  ([id]
+   (swap! registry dissoc id)))
