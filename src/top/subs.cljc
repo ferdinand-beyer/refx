@@ -1,6 +1,7 @@
 (ns top.subs
   (:require [top.interop :as interop]
             [top.log :as log]
+            [top.utils :as utils]
             [uix.core.alpha :as uix]))
 
 ;; --- signals ----------------------------------------------------------------
@@ -12,7 +13,7 @@
    listeners do not get values, as they are expected to be computed on demand."
   (-value [this])
   (-add-listener [this k f]
-    "Register a listener that will be called like `(f k signal)`.")
+    "Register a listener that will be called without arguments.")
   (-remove-listener [this k]))
 
 (defn signal? [x]
@@ -48,84 +49,219 @@
 
 ;; --- subscriptions ----------------------------------------------------------
 
+(defprotocol ISub
+  (-query-v [this])
+  (-dispose! [this]))
+
+(defn- dispose! [sub]
+  (cache-remove! (-query-v sub) sub)
+  (-dispose! sub))
+
+;; TODO This could be changed to support "garbage collection": Don't dispose
+;; right away, but keep subscriptions around for a while in case they are
+;; requested again.
+(defn- sub-orphaned [sub]
+  (dispose! sub))
+
+(defn clear-subscription-cache! []
+  (doseq [[_ sub] @sub-cache]
+    (dispose! sub))
+  (when (not-empty @sub-cache)
+    (log/warn "The subscription cache isn't empty after being cleared")))
+
+(deftype Listeners [^:mutable listeners]
+  Object
+  (empty? [_] (empty? listeners))
+  (add [_ k f]
+    (set! listeners (assoc listeners k f)))
+  (remove [_ k]
+    (set! listeners (dissoc listeners k)))
+  (notify [_]
+    ;; TODO: Use pure JavaScript for speed?
+    (doseq [[_ f] listeners]
+      (f))))
+
+(defn- make-listeners []
+  (Listeners. nil))
+
 (def object-uid #?(:cljs goog/getUid
                    :clj  System/identityHashCode))
 
 (defn object-key [o]
   (str "__obj_" (object-uid o)))
 
-;; TODO: Only (when (signal? %))?
-(defn- map-inputs
+(defn- map-signals
   "Apply `f` to a node input value."
-  [f inputs]
+  [f input]
   (cond
-    (sequential? inputs) (mapv f inputs)
-    (map? inputs) (update-vals inputs f)
-    (signal? inputs) (f inputs)
-    :else nil))
+    (signal? input) (f input)
+    (sequential? input) (mapv f input)
+    (map? input) (update-vals input f)
+    :else input))
 
-(defn- run-inputs! [f inputs]
-  (map-inputs f inputs)
+(defn- run-signals! [f input]
+  (map-signals f input)
   nil)
 
-(def ^:private INVALID ::invalid)
+(defn- compute-sub [query-v input compute-fn]
+  (compute-fn (map-signals -value input) query-v))
 
-(deftype Sub [query-v inputs compute-fn ^:mutable value ^:mutable listeners]
+(deftype Sub [query-v input compute-fn
+              ^Listeners listeners
+              ^:mutable value
+              ^:mutable dirty?]
   Object
   (init! [this]
     (let [key (object-key this)
           cb  #(.invalidate! this)]
-      (run-inputs! #(-add-listener % key cb) inputs)
-      (cache-add! query-v this)))
-
-  (dispose! [this]
-    (let [key (object-key this)]
-      (run-inputs! #(-remove-listener % key) inputs))
-    (cache-remove! query-v this))
+      (run-signals! #(-add-listener % key cb) input)))
 
   (invalidate! [this]
-    (when-not (identical? value INVALID)
-      (set! value INVALID)
-      (doseq [[key f] listeners]
-        (f key this))))
+    (when-not dirty?
+      (set! dirty? true)
+      (interop/next-tick #(.update! this))))
+
+  (update! [_]
+    (let [new-value (compute-sub query-v input compute-fn)]
+      (set! dirty? false)
+      (when (not= value new-value)
+        (set! value new-value)
+        (.notify listeners))))
+
+  #?@(:cljs
+      [IEquiv
+       (-equiv [this other] (identical? this other))
+
+       IHash
+       (-hash [this] (object-uid this))
+
+       IDeref
+       (-deref [this] (-value this))])
+
+  ISub
+  (-query-v [_] query-v)
+  (-dispose! [this]
+    (let [key (object-key this)]
+      (run-signals! #(-remove-listener % key) input)))
+
+  ISignal
+  (-value [_] value)
+  (-add-listener [_ k f]
+    (.add listeners k f))
+  (-remove-listener [this k]
+    (.remove listeners k)
+    (when (.empty? listeners)
+      (sub-orphaned this))))
+
+(defn- make-sub
+  [query-v input compute-fn]
+  (let [value (compute-sub query-v input compute-fn)
+        sub   (Sub. query-v input compute-fn (make-listeners) value false)]
+    (.init! sub)
+    sub))
+
+;; --- dynamic ----------------------------------------------------------------
+;;
+;; Dynamic subscriptions allow callers to place signals in query vectors:
+;; (subscribe [:dynamic (sub [:param1]) (sub [:param2])])
+;;
+;; This is not very useful in views, as these should be composed in such a way
+;; that child components take parameters for their subscriptions as props.
+;;
+;; However, it is useful to create more powerful named subscriptions with
+;; `reg-sub`.
+;;
+;; Dynamic subs wrap a special "query-sub" that computes the dynamic query
+;; vector, and a mutable "value-sub" that is updated whenever the query sub
+;; changes.
+
+(deftype DynamicSub [query-v query-sub handler-fn
+                     ^Listeners listeners
+                     ^:mutable value-sub]
+  Object
+  (init! [this]
+    (.update! this)
+    (-add-listener query-sub (object-key this) #(.update! this)))
+
+  (update! [this]
+    (let [qv  (-value query-sub)
+          key (object-key this)]
+      (when value-sub
+        (-remove-listener value-sub key))
+      (set! value-sub (handler-fn qv))
+      (-add-listener value-sub key #(.notify listeners))
+      (.notify listeners)))
+
+  #?@(:cljs
+      [IEquiv
+       (-equiv [this other] (identical? this other))
+
+       IHash
+       (-hash [this] (object-uid this))
+
+       IDeref
+       (-deref [this] (-value this))])
+
+  ISub
+  (-query-v [_] query-v)
+  (-dispose! [this]
+    (let [key (object-key this)]
+      (-remove-listener query-sub key)
+      (when value-sub
+        (-remove-listener value-sub key))))
 
   ISignal
   (-value [_]
-    (when (identical? value INVALID)
-      (set! value (compute-fn (map-inputs -value inputs))))
-    value)
-
+    (-value value-sub))
   (-add-listener [_ k f]
-    (set! listeners (assoc listeners k f)))
-
+    (.add listeners k f))
   (-remove-listener [this k]
-    (set! listeners (dissoc listeners k))
-    ;; ??? Instead of disposing immeditately, we could use a GC scheme: Mark
-    ;; this sub unused, and periodically remove unused subs.  Maybe with an
-    ;; intermediate "flag for removal" stage.
-    ;; To use subs in event handlers, we could also "reset" the mark every time
-    ;; we access the value.
-    (when (empty? listeners)
-      (.dispose! this))))
+    (.remove listeners k)
+    (when (.empty? listeners)
+      (sub-orphaned this))))
 
-(defn make-sub
-  [query-v inputs compute-fn]
-  (let [sub (Sub. query-v inputs compute-fn INVALID nil)]
-    (.init! sub)
-    sub))
+(def ^:private some-signal?
+  (every-pred some? signal?))
+
+(defn- dynamic? [query-v]
+  (some some-signal? query-v))
+
+(defn- dynamic-input
+  "Input function for dynamic subscriptions, where the query vector contains
+   signals.  Returns a map of vector indexes to signals."
+  [query-v]
+  (into {}
+        (keep-indexed (fn [i x]
+                        (when (some-signal? x)
+                          [i x])))
+        query-v))
+
+(defn- dynamic-compute
+  "Returns a query vector with signals replaced with their current values."
+  [input [_ query-v]]
+  (reduce-kv assoc query-v input))
+
+(defn- make-dynamic [query-v handler-fn]
+  (let [query-sub (make-sub [::query-v query-v] (dynamic-input query-v) dynamic-compute)
+        dynamic   (DynamicSub. query-v query-sub handler-fn (make-listeners) nil)]
+    (.init! dynamic)
+    dynamic))
 
 ;; --- registry ---------------------------------------------------------------
 
 (defonce registry (atom {}))
 
 (defn- create-sub [query-v]
-  (let [query-id (first query-v)
-        handler  (get @registry query-id)]
-    (if (nil? handler)
+  (let [query-id   (utils/first-in-vector query-v)
+        handler-fn (get @registry query-id)]
+    (if (nil? handler-fn)
       ;; Note that nil is a valid signal.
       (log/error "no subscription handler registered for:" (str query-id))
-      (let [compile-fn (:compile handler)]
-        (compile-fn query-v)))))
+      (let [sub (if (dynamic? query-v)
+                  (make-dynamic query-v handler-fn)
+                  (handler-fn query-v))]
+        (cache-add! query-v sub)
+        sub))))
 
 (defn sub
   "Returns a subscription to `query-v`.
@@ -137,14 +273,11 @@
   (or (cache-lookup query-v)
       (create-sub query-v)))
 
-(defn- make-handler [query-id inputs-fn compute-fn]
-  {:id      query-id
-   :compile (fn [query-v]
-              (make-sub query-v (inputs-fn query-v) compute-fn))})
-
 (defn register
-  [query-id inputs-fn compute-fn]
-  (swap! registry assoc query-id (make-handler query-id inputs-fn compute-fn)))
+  [query-id input-fn compute-fn]
+  (letfn [(handler-fn [query-v]
+            (make-sub query-v (input-fn query-v) compute-fn))]
+    (swap! registry assoc query-id handler-fn)))
 
 (defn unregister
   ([]
@@ -172,12 +305,7 @@
                      s (volatile! (delay (sub query-v)))]
                  {:get-current-value (fn [] (-value @@s))
                   :subscribe (fn [callback]
-                               ;; Nodes in the subscription graph might be
-                               ;; invalidated multiple times. Give the whole
-                               ;; graph time to settle before computing values
-                               ;; by calling `-value`, by wrapping the callback
-                               ;; in `next-tick`.
-                               (-add-listener @@s k #(interop/next-tick callback))
+                               (-add-listener @@s k callback)
                                (fn []
                                  (-remove-listener @@s k)
                                  (vreset! s (delay (sub query-v)))))}))

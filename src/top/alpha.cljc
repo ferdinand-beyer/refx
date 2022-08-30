@@ -1,4 +1,5 @@
 (ns top.alpha
+  (:refer-clojure :exclude [->])
   (:require [top.builtins :as builtins]
             [top.cofx :as cofx]
             [top.dispatch :as dispatch]
@@ -57,27 +58,41 @@
 
 ;; --- subscriptions ----------------------------------------------------------
 
-;; TODO: Provide means to compose input functions?
-;; ??? Can we make use of transducers?
-(defn reg-sub
-  ([query-id compute-fn]
-   (reg-sub query-id (constantly store) compute-fn))
-  ([query-id inputs-fn compute-fn]
-   (subs/register query-id inputs-fn compute-fn)))
-
 (defn sub
-  "Return a subscription to be used as an input in `reg-sub`."
+  "Return a subscription signal to be used as an input in `reg-sub`."
   [query-v]
   (subs/sub query-v))
 
 (defn <-
-  "Like re-frame's `:<-` sugar, returns an `inputs-fn` for `reg-sub` that
+  "Like re-frame's `:<-` sugar, returns an `input-fn` for `reg-sub` that
    subscribes to one or more query vectors."
   ([query-v]
    (fn [_] (subs/sub query-v)))
   ([query-v & qs]
    (let [qs (cons query-v qs)]
      (fn [_] (mapv subs/sub qs)))))
+
+(defn ->
+  "Like re-frame's `:->` sugar, wraps a handler function that ignores the
+   query vector."
+  [f]
+  (fn [input _]
+    (f input)))
+
+(defn =>
+  "Like re-frame's `:->` sugar, wraps a handler function that takes the
+   \"arguments\" of a query vector, without the query ID."
+  [f]
+  (fn [input [_ & qs]]
+    (apply f input qs)))
+
+;; TODO: Provide means to compose input functions?
+;; ??? Can we make use of transducers?
+(defn reg-sub
+  ([query-id compute-fn]
+   (reg-sub query-id (constantly store) compute-fn))
+  ([query-id input-fn compute-fn]
+   (subs/register query-id input-fn compute-fn)))
 
 (defn subscribe [query-v]
   (subs/subscribe query-v))
@@ -87,6 +102,9 @@
    (subs/unregister))
   ([id]
    (subs/unregister id)))
+
+(defn clear-subscription-cache! []
+  (subs/clear-subscription-cache!))
 
 ;; --- effects ----------------------------------------------------------------
 
