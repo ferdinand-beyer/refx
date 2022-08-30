@@ -5,7 +5,7 @@
 
 (def next-tick goog.async.nextTick)
 
-(def after-render next-tick)  ;; is there an equivalent in uix?
+(def after-render next-tick)  ;; is there an equivalent in plain React?
 
 ;; Make sure the Google Closure compiler sees this as a boolean constant,
 ;; otherwise Dead Code Elimination won't happen in `:advanced` builds.

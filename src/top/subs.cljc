@@ -1,8 +1,9 @@
 (ns top.subs
-  (:require [top.interop :as interop]
+  (:require ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
+            [react :as react]
+            [top.interop :as interop]
             [top.log :as log]
-            [top.utils :as utils]
-            [uix.core.alpha :as uix]))
+            [top.utils :as utils]))
 
 ;; --- signals ----------------------------------------------------------------
 
@@ -294,19 +295,22 @@
 (defn subscribe
   "React hook to subscribe to signals."
   [query-v]
-  (uix/subscribe
-   ;; Since we create our callback functions dynamically, we need to memoize
-   ;; to avoid re-rendering.
-   (uix/memo (fn []
-               ;; Use a delay so that we get the sub exactly once.  On
-               ;; unsubscribe we reset the delay so that we get a new sub
-               ;; in case we subscribe again.
-               (let [k (sub-key)
-                     s (volatile! (delay (sub query-v)))]
-                 {:get-current-value (fn [] (-value @@s))
-                  :subscribe (fn [callback]
-                               (-add-listener @@s k callback)
-                               (fn []
-                                 (-remove-listener @@s k)
-                                 (vreset! s (delay (sub query-v)))))}))
-             [query-v])))
+  ;; TODO: Move react deps to interop
+  (let [deps (react/useRef query-v)]
+    (when (not= (.-current deps) query-v)
+      (set! (.-current deps) query-v))
+    (let [[subscribe snapshot]
+          (react/useMemo
+           (fn []
+             ;; Keep the key and sub also in the ref?
+             (let [k (sub-key)
+                   s (sub query-v)]
+               [(fn [callback]
+                  (-add-listener s k callback)
+                  (fn []
+                    (-remove-listener s k)
+                    (set! (.-current deps) nil)))
+                (fn []
+                  (-value s))]))
+           #js [(.-current deps)])]
+      (useSyncExternalStore subscribe snapshot))))
