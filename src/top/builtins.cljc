@@ -131,6 +131,8 @@
                      (assoc-effect context :db))
                 context)))))
 
+;; TODO: Move this, as the `inject-global-interceptors` interceptor is added by
+;; default.  Then this namespace can be "utility interceptors" only.
 (defonce global-interceptors (atom interop/empty-queue))
 
 (def inject-global-interceptors

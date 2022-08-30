@@ -123,6 +123,7 @@
     (-process-1st-event-in-queue this)
     (-run-queue this)))
 
+;; TODO: Will there ever be more than one?
 (def event-queue (->EventQueue :idle empty-queue {}))
 
 (defn dispatch
