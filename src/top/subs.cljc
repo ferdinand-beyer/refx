@@ -1,5 +1,6 @@
 (ns top.subs
-  (:require [top.log :as log]
+  (:require [top.interop :as interop]
+            [top.log :as log]
             [uix.core.alpha :as uix]))
 
 ;; --- signals ----------------------------------------------------------------
@@ -161,12 +162,22 @@
   "React hook to subscribe to signals."
   [query-v]
   (uix/subscribe
+   ;; Since we create our callback functions dynamically, we need to memoize
+   ;; to avoid re-rendering.
    (uix/memo (fn []
+               ;; Use a delay so that we get the sub exactly once.  On
+               ;; unsubscribe we reset the delay so that we get a new sub
+               ;; in case we subscribe again.
                (let [k (sub-key)
                      s (volatile! (delay (sub query-v)))]
                  {:get-current-value (fn [] (-value @@s))
                   :subscribe (fn [callback]
-                               (-add-listener @@s k callback)
+                               ;; Nodes in the subscription graph might be
+                               ;; invalidated multiple times. Give the whole
+                               ;; graph time to settle before computing values
+                               ;; by calling `-value`, by wrapping the callback
+                               ;; in `next-tick`.
+                               (-add-listener @@s k #(interop/next-tick callback))
                                (fn []
                                  (-remove-listener @@s k)
                                  (vreset! s (delay (sub query-v)))))}))
