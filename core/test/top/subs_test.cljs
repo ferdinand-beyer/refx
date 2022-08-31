@@ -85,3 +85,18 @@
                                              (is (= [:dynamic :b 2] @sub))
                                              (done)))
              (swap! source assoc :k :b)))))
+
+(deftest test-cache-removal
+  (let [source (atom 0)]
+    (subs/register :a (constantly source) identity)
+    (subs/register :b (constantly (subs/sub [:a])) inc)
+    (subs/register :c (constantly (subs/sub [:b])) inc)
+    (subs/register :k (constantly nil) (constantly :c))
+    (subs/register :dynamic (fn [[_ k]] (subs/sub [k])) inc)
+    (let [k   (subs/sub [:k])
+          sub (subs/sub [:dynamic k])]
+      (is (= #{[:a] [:b] [:c] [:k] [:dynamic k]}
+             (-> @subs/sub-cache keys set)))
+      (subs/-add-listener sub :test #())
+      (subs/-remove-listener sub :test)
+      (is (empty? @subs/sub-cache)))))

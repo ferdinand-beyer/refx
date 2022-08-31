@@ -62,6 +62,7 @@
 ;; TODO This could be changed to support "garbage collection": Don't dispose
 ;; right away, but keep subscriptions around for a while in case they are
 ;; requested again.
+;; E.g. we could trigger background jobs using window.requestIdleCallback()
 (defn- sub-orphaned [sub]
   (dispose! sub))
 
@@ -71,6 +72,7 @@
   (when (not-empty @sub-cache)
     (log/warn "The subscription cache isn't empty after being cleared")))
 
+;; TODO: Use pure JavaScript for speed?
 (deftype Listeners [^:mutable listeners]
   Object
   (empty? [_] (empty? listeners))
@@ -79,7 +81,6 @@
   (remove [_ k]
     (set! listeners (dissoc listeners k)))
   (notify [_]
-    ;; TODO: Use pure JavaScript for speed?
     (doseq [[_ f] listeners]
       (f))))
 
@@ -162,6 +163,14 @@
     (.init! sub)
     sub))
 
+;; --- register ---------------------------------------------------------------
+
+(defn register
+  [query-id input-fn compute-fn]
+  (letfn [(handler-fn [query-v]
+            (make-sub query-v (input-fn query-v) compute-fn))]
+    (registry/add! kind query-id handler-fn)))
+
 ;; --- dynamic ----------------------------------------------------------------
 ;;
 ;; Dynamic subscriptions allow callers to place signals in query vectors:
@@ -170,13 +179,12 @@
 ;; This is not very useful in views, as these should be composed in such a way
 ;; that child components take parameters for their subscriptions as props.
 ;;
-;; However, it is useful to create more powerful named subscriptions with
-;; `reg-sub`.
+;; However, it can be useful to create more powerful named subscriptions with
+;; `reg-sub`, without needing to change how views are organised.
 ;;
 ;; Dynamic subs wrap a special "query-sub" that computes the dynamic query
 ;; vector, and a mutable "value-sub" that is updated whenever the query sub
 ;; changes.
-
 (deftype DynamicSub [query-v query-sub handler-fn
                      ^Listeners listeners
                      ^:mutable value-sub]
@@ -190,7 +198,8 @@
           key (object-key this)]
       (when value-sub
         (-remove-listener value-sub key))
-      (set! value-sub (handler-fn qv))
+      (set! value-sub (or (cache-lookup qv)
+                          (handler-fn qv)))
       (-add-listener value-sub key #(.notify listeners))
       (.notify listeners)))
 
@@ -222,10 +231,13 @@
     (when (.empty? listeners)
       (sub-orphaned this))))
 
+;; Don't consider nil dynamic, even though it is a valid signal.
 (def ^:private some-signal?
   (every-pred some? signal?))
 
-(defn- dynamic? [query-v]
+(defn- dynamic?
+  "Return true if a query vector contains signals."
+  [query-v]
   (some some-signal? query-v))
 
 (defn- dynamic-input
@@ -239,17 +251,21 @@
         query-v))
 
 (defn- dynamic-compute
-  "Returns a query vector with signals replaced with their current values."
+  "Computation function for dynamic subscriptions.  Returns a query vector
+   where signals have been replaced with their current values.  `input` must
+   be a map of vector index to value, as returned by `dynamic-input`."
   [input [_ query-v]]
   (reduce-kv assoc query-v input))
 
-(defn- make-dynamic [query-v handler-fn]
-  (let [query-sub (make-sub [::query-v query-v] (dynamic-input query-v) dynamic-compute)
+(defn- make-dynamic
+  "Make a dynamic subscription."
+  [query-v handler-fn]
+  (let [query-sub (make-sub [::query query-v] (dynamic-input query-v) dynamic-compute)
         dynamic   (DynamicSub. query-v query-sub handler-fn (make-listeners) nil)]
     (.init! dynamic)
     dynamic))
 
-;; --- registry ---------------------------------------------------------------
+;; --- sub --------------------------------------------------------------------
 
 (defn- create-sub [query-v]
   (let [query-id (utils/first-in-vector query-v)]
@@ -270,10 +286,3 @@
   [query-v]
   (or (cache-lookup query-v)
       (create-sub query-v)))
-
-(defn register
-  [query-id input-fn compute-fn]
-  (letfn [(handler-fn [query-v]
-            (make-sub query-v (input-fn query-v) compute-fn))]
-    (registry/add! kind query-id handler-fn)))
-
