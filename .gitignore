@@ -6,6 +6,7 @@
 .shadow-cljs/
 .vscode/
 node_modules/
+target/
 
 .nrepl-port
 

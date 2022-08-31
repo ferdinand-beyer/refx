@@ -2,7 +2,9 @@
   "scripts": {
     "start": "shadow-cljs start dev",
     "stop": "shadow-cljs stop",
-    "restart": "shadow-cljs restart"
+    "restart": "shadow-cljs restart",
+    "karma:compile": "shadow-cljs compile karma-test",
+    "karma:single": "karma start --single-run"
   },
   "dependencies": {
     "react": "^17.0.2",
@@ -10,6 +12,11 @@
     "use-sync-external-store": "^1.2.0"
   },
   "devDependencies": {
+    "karma": "^6.4.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-cljs-test": "^0.1.0",
+    "karma-junit-reporter": "^2.0.1",
+    "karma-phantomjs-launcher": "^1.0.4",
     "shadow-cljs": "^2.19.9"
   }
 }

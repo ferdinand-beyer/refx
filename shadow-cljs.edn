@@ -1,10 +1,23 @@
-{:deps {:aliases [:dev :uix]}
+{:deps {:aliases [:dev :test :uix]}
 
- ;; TODO: Per build?
- :dev-http {8000 "examples/uix/resources/public"}
+ :dev-http {8000 "examples/uix/resources/public"
+            8001 "target/test/browser"}
 
  :builds
- {:example-uix
+ {:browser-test
+  {:target :browser-test
+   :test-dir "target/test/browser"
+   :compiler-options {:pretty-print true
+                      :external-config {:devtools/config {:features-to-install [:formatters :hints]}}}
+   :devtools {;:preloads  [devtools.preload]
+              }}
+
+  :karma-test
+  {:target :karma
+   :output-to "target/test/karma/test.js"
+   :compiler-options {:pretty-print true}}
+
+  :example-uix
   {:target :browser
    :output-dir "examples/uix/resources/public/js"
    :asset-path "/js"
