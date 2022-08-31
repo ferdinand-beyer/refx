@@ -152,5 +152,5 @@
    (cofx/inject-cofx id value)))
 
 (defn ->interceptor
-  [& m]
+  [& {:as m}]
   (utils/apply-kw interceptor/->interceptor m))
