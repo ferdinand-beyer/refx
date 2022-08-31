@@ -6,6 +6,7 @@
             [top.effects :as effects]
             [top.events :as events]
             [top.hooks :as hooks]
+            [top.interceptor :as interceptor]
             [top.registry :as registry]
             [top.store :refer [store]]
             [top.subs :as subs]
@@ -151,5 +152,5 @@
    (cofx/inject-cofx id value)))
 
 (defn ->interceptor
-  [& {:as m :keys [id before after]}]
+  [& m]
   (utils/apply-kw interceptor/->interceptor m))
