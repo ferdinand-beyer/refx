@@ -5,15 +5,12 @@
             [top.dispatch :as dispatch]
             [top.effects :as effects]
             [top.events :as events]
+            [top.hooks :as hooks]
             [top.registry :as registry]
             [top.store :refer [store]]
             [top.subs :as subs]))
 
 ;; --- dispatch ---------------------------------------------------------------
-
-;; re-frame: dispatch event
-;; redux: dispatch action
-;; elm: messages
 
 (defn dispatch
   [event]
@@ -87,31 +84,31 @@
   (fn [input [_ & qs]]
     (apply f input qs)))
 
-;; TODO: Provide means to compose input functions?
-;; ??? Can we make use of transducers?
+(defn- parse-reg-sub-sugar [args]
+  (let [[qs f] (reduce (fn [[qs f] [op arg]]
+                         (case op
+                           :<- [(conj qs arg) f]
+                           :-> [qs (-> arg)]
+                           :=> [qs (=> arg)]
+                           [qs op]))
+                       [[] nil]
+                       (partition-all 2 args))]
+    [(when (seq qs) (apply <- qs)) f]))
+
 (defn reg-sub
   ([query-id compute-fn]
    (reg-sub query-id (constantly store) compute-fn))
   ([query-id input-fn compute-fn]
    (subs/register query-id input-fn compute-fn))
   ;; re-frame compat
-  ([query-id a b c & more]
-   (let [[qs compute-fn]
-         (reduce (fn [[qs cfn] [m arg]]
-                   (case m
-                     :<- [(conj qs arg) cfn]
-                     :-> [qs (-> arg)]
-                     :=> [qs (=> arg)]
-                     [qs m]))
-                 [[] nil]
-                 (->> (concat [a b c] more)
-                      (partition-all 2)))]
-     (if (seq qs)
-       (reg-sub query-id (apply <- qs) compute-fn)
+  ([query-id x y z & args]
+   (let [[input-fn compute-fn] (parse-reg-sub-sugar (concat [x y z] args))]
+     (if input-fn
+       (reg-sub query-id input-fn compute-fn)
        (reg-sub query-id compute-fn)))))
 
 (defn subscribe [query-v]
-  (subs/subscribe query-v))
+  (hooks/use-sub query-v))
 
 (defn clear-sub
   ([]

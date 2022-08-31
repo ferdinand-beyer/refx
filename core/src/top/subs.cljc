@@ -1,7 +1,5 @@
 (ns top.subs
-  (:require ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
-            [react :as react]
-            [top.interop :as interop]
+  (:require [top.interop :as interop]
             [top.log :as log]
             [top.registry :as registry]
             [top.utils :as utils]))
@@ -279,31 +277,3 @@
             (make-sub query-v (input-fn query-v) compute-fn))]
     (registry/add! kind query-id handler-fn)))
 
-;; --- subscribe --------------------------------------------------------------
-
-(let [counter (atom 0)]
-  (defn- sub-key []
-    (str "__sub_" (swap! counter inc))))
-
-(defn subscribe
-  "React hook to subscribe to signals."
-  [query-v]
-  ;; TODO: Move react deps to interop
-  (let [deps (react/useRef query-v)]
-    (when (not= (.-current deps) query-v)
-      (set! (.-current deps) query-v))
-    (let [[subscribe snapshot]
-          (react/useMemo
-           (fn []
-             ;; Keep the key and sub also in the ref?
-             (let [k (sub-key)
-                   s (sub query-v)]
-               [(fn [callback]
-                  (-add-listener s k callback)
-                  (fn []
-                    (-remove-listener s k)
-                    (set! (.-current deps) nil)))
-                (fn []
-                  (-value s))]))
-           #js [(.-current deps)])]
-      (useSyncExternalStore subscribe snapshot))))
