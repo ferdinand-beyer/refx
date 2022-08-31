@@ -1,0 +1,2 @@
+{:paths ["src"]
+ :deps {cljs-ajax/cljs-ajax {:mvn/version "0.8.4"}}}

@@ -1,4 +1,5 @@
-{:deps {top/core {:local/root "core"}}
+{:deps {top/core {:local/root "core"}
+        top/http {:local/root "http"}}
  :aliases
  {:dev   {:extra-paths ["dev"]
           :extra-deps {thheller/shadow-cljs {:mvn/version "2.19.5"}
