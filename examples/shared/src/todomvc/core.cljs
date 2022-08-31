@@ -1,13 +1,10 @@
 (ns todomvc.core
   (:require-macros [secretary.core :refer [defroute]])
   (:require [goog.events :as events]
-            [uix.core.alpha :as uix]
-            [uix.dom.alpha :as uix.dom]
-            [top.alpha :as top :refer [dispatch dispatch-sync]]
             [secretary.core :as secretary]
             [todomvc.events] ;; These two are only required to make the compiler
-            [todomvc.subs]   ;; load them (see docs/App-Structure.md)
-            [todomvc.views])
+            [todomvc.subs] ;; load them (see docs/App-Structure.md)
+            [top.alpha :as top :refer [dispatch dispatch-sync]])
   (:import [goog History]
            [goog.history EventType]))
 
@@ -37,27 +34,3 @@
     (events/listen EventType.NAVIGATE
                    (fn [^js/goog.History.Event event] (secretary/dispatch! (.-token event))))
     (.setEnabled true)))
-
-
-;; -- Entry Point -------------------------------------------------------------
-
-(defn render
-  []
-  ;; Render the UI into the HTML's <div id="app" /> element
-  ;; The view function `todomvc.views/todo-app` is the
-  ;; root view for the entire UI.
-
-  (uix.dom/render (uix/strict-mode [todomvc.views/todo-app])
-                  (.getElementById js/document "app")))
-
-(defn ^:dev/after-load clear-cache-and-render!
-  []
-  ;; The `:dev/after-load` metadata causes this function to be called
-  ;; after shadow-cljs hot-reloads code. We force a UI update by clearing
-  ;; the Reframe subscription cache.
-  (top/clear-subscription-cache!)
-  (render))
-
-(defn ^:export init
-  []
-  (render))

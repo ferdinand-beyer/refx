@@ -1,16 +1,15 @@
-{:deps {:aliases [:dev :test :uix]}
+{:deps {:aliases [:dev :test :helix :uix]}
 
- :dev-http {8000 "examples/uix/resources/public"
-            8001 "target/test/browser"}
+ :dev-http {8000 "target/test/browser"
+            8001 "examples/uix/resources/public"
+            8002 "examples/helix/resources/public"}
 
  :builds
  {:browser-test
   {:target :browser-test
    :test-dir "target/test/browser"
    :compiler-options {:pretty-print true
-                      :external-config {:devtools/config {:features-to-install [:formatters :hints]}}}
-   :devtools {;:preloads  [devtools.preload]
-              }}
+                      :external-config {:devtools/config {:features-to-install [:formatters :hints]}}}}
 
   :karma-test
   {:target :karma
@@ -21,4 +20,10 @@
   {:target :browser
    :output-dir "examples/uix/resources/public/js"
    :asset-path "/js"
-   :modules {:core {:init-fn todomvc.core/init}}}}}
+   :modules {:core {:init-fn todomvc.uix.core/init}}}
+
+  :example-helix
+  {:target :browser
+   :output-dir "examples/helix/resources/public/js"
+   :asset-path "/js"
+   :modules {:core {:init-fn todomvc.helix.core/init}}}}}

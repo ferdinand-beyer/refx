@@ -1,4 +1,4 @@
-(ns todomvc.views
+(ns todomvc.uix.views
   (:require [uix.core.alpha :as uix]
             [top.alpha :refer [subscribe dispatch]]
             [clojure.string :as str]))
