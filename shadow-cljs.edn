@@ -1,7 +1,12 @@
 {:deps {:aliases [:dev :uix]}
- :dev-http {8000 "public"}
- :builds {:dev
-          {:target :browser
-           :output-dir "public/js"
-           :asset-path "/js"
-           :modules {:core {:init-fn top-demo.core/init}}}}}
+
+ ;; TODO: Per build?
+ :dev-http {8000 "examples/uix/resources/public"}
+
+ :builds
+ {:example-uix
+  {:target :browser
+   :output-dir "examples/uix/resources/public/js"
+   :asset-path "/js"
+   ;; TODO: Get that TODO-MVC working
+   :modules {:core {:init-fn top-demo.core/init}}}}}

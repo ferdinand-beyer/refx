@@ -1,7 +1,8 @@
 {
   "scripts": {
     "start": "shadow-cljs start dev",
-    "stop": "shadow-cljs stop"
+    "stop": "shadow-cljs stop",
+    "restart": "shadow-cljs restart"
   },
   "dependencies": {
     "react": "^17.0.2",

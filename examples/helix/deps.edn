@@ -1,0 +1,3 @@
+{:paths ["src"]
+ :deps {top/core {:local/root "../../core"}
+        lilactown/helix {:mvn/version "0.1.8"}}}

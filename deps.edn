@@ -1,15 +1,7 @@
-{:paths ["src"]
-
+{:deps {top/core {:local/root "core"}}
  :aliases
- {:dev {:extra-paths ["dev"]
-        :extra-deps {thheller/shadow-cljs {:mvn/version "2.19.5"}
-                     binaryage/devtools {:mvn/version "1.0.6"}}}
-
-  :helix {:extra-deps {lilactown/helix {:mvn/version "0.1.8"}}}
-
-  :uix {:extra-deps {uix/core {:git/url "https://github.com/roman01la/uix.git"
-                               :deps/root "core"
-                               :sha "843abbe4c4b331fbb0d7d197ecd038b466b48e43"}
-                     uix/dom  {:git/url "https://github.com/roman01la/uix.git"
-                               :deps/root "dom"
-                               :sha "843abbe4c4b331fbb0d7d197ecd038b466b48e43"}}}}}
+ {:dev   {:extra-paths ["dev"]
+          :extra-deps {thheller/shadow-cljs {:mvn/version "2.19.5"}
+                       binaryage/devtools {:mvn/version "1.0.6"}}}
+  :helix {:extra-deps {top.example/helix {:local/root "examples/helix"}}}
+  :uix   {:extra-deps {top.example/uix {:local/root "examples/uix"}}}}}

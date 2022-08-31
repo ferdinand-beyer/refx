@@ -7,8 +7,6 @@
 .vscode/
 node_modules/
 
-/public/js
-
 .nrepl-port
 
 *.dylib
