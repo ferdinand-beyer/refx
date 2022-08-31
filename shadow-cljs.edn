@@ -8,5 +8,4 @@
   {:target :browser
    :output-dir "examples/uix/resources/public/js"
    :asset-path "/js"
-   ;; TODO: Get that TODO-MVC working
-   :modules {:core {:init-fn top-demo.core/init}}}}}
+   :modules {:core {:init-fn todomvc.core/init}}}}}
