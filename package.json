@@ -4,7 +4,8 @@
     "stop": "shadow-cljs stop",
     "restart": "shadow-cljs restart",
     "karma:compile": "shadow-cljs compile karma-test",
-    "karma:single": "karma start --single-run"
+    "karma:single": "karma start --single-run",
+    "karma:ci": "karma start --single-run --reporters junit,dots"
   },
   "dependencies": {
     "react": "^17.0.2",

@@ -18,7 +18,7 @@ module.exports = function (config) {
       singleRun: true
     },
     junitReporter: {
-      outputDir: outputDir + '/junit',
+      outputDir: 'junit',
       outputFile: undefined,
       suite: ''
     }
