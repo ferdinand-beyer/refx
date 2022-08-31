@@ -8,7 +8,8 @@
             [top.hooks :as hooks]
             [top.registry :as registry]
             [top.store :refer [store]]
-            [top.subs :as subs]))
+            [top.subs :as subs]
+            [top.utils :as utils]))
 
 ;; --- dispatch ---------------------------------------------------------------
 
@@ -148,3 +149,7 @@
    (cofx/inject-cofx id))
   ([id value]
    (cofx/inject-cofx id value)))
+
+(defn ->interceptor
+  [& {:as m :keys [id before after]}]
+  (utils/apply-kw interceptor/->interceptor m))
