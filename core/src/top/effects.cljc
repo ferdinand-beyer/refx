@@ -4,21 +4,16 @@
             [top.interceptor :refer [->interceptor]]
             [top.interop :as interop]
             [top.log :as log]
+            [top.registry :as registry]
             [top.store :refer [store]]))
+
+(def kind :fx)
 
 ;; -- Registration ------------------------------------------------------------
 
-(defonce registry (atom {}))
-
 (defn register
   [id handler]
-  (swap! registry assoc id handler))
-
-(defn unregister
-  ([]
-   (reset! registry {}))
-  ([id]
-   (swap! registry dissoc id)))
+  (registry/add! kind id handler))
 
 ;; -- Interceptor -------------------------------------------------------------
 
@@ -56,11 +51,12 @@
                   effects-without-db (dissoc effects :db)]
                  ;; :db effect is guaranteed to be handled before all other effects.
               (when-let [new-db (:db effects)]
+                ;; TODO: Look it up, since it could change?
                 (db-effect new-db))
-              (doseq [[effect-key effect-value] effects-without-db]
-                (if-let [effect-fn (get @registry effect-key false)]
+              (doseq [[fx-id effect-value] effects-without-db]
+                (if-let [effect-fn (registry/lookup kind fx-id false)]
                   (effect-fn effect-value)
-                  (log/warn "no handler registered for effect:" effect-key ". Ignoring.")))))))
+                  (log/warn "no handler registered for effect:" fx-id ". Ignoring.")))))))
 
 ;; -- Builtin Effect Handlers  ------------------------------------------------
 
@@ -96,7 +92,7 @@
 ;; :fx
 ;;
 ;; Handle one or more effects. Expects a collection of vectors (tuples) of the
-;; form [effect-key effect-value]. `nil` entries in the collection are ignored
+;; form [fx-id effect-value]. `nil` entries in the collection are ignored
 ;; so effects can be added conditionally.
 ;;
 ;; usage:
@@ -111,12 +107,12 @@
  (fn [seq-of-effects]
    (if-not (sequential? seq-of-effects)
      (log/warn "\":fx\" effect expects a seq, but was given " (type seq-of-effects))
-     (doseq [[effect-key effect-value] (remove nil? seq-of-effects)]
-       (when (= :db effect-key)
+     (doseq [[fx-id effect-value] (remove nil? seq-of-effects)]
+       (when (= :db fx-id)
          (log/warn "\":fx\" effect should not contain a :db effect"))
-       (if-let [effect-fn (get @registry effect-key false)]
+       (if-let [effect-fn (registry/lookup kind fx-id false)]
          (effect-fn effect-value)
-         (log/warn "in \":fx\" effect found " effect-key " which has no associated handler. Ignoring."))))))
+         (log/warn "in \":fx\" effect found " fx-id " which has no associated handler. Ignoring."))))))
 
 ;; :dispatch
 ;;
@@ -162,12 +158,13 @@
 ;; or:
 ;;   {:deregister-event-handler [:one-id :another-id]}
 ;;
+;; TODO: "unregister"
 (register
  :deregister-event-handler
  (fn [value]
    (if (sequential? value)
-     (doseq [event-id value] (events/unregister event-id))
-     (events/unregister))))
+     (doseq [event-id value] (registry/remove! events/kind event-id))
+     (registry/clear! events/kind))))
 
 ;; :db
 ;;

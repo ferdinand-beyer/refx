@@ -3,7 +3,10 @@
             [react :as react]
             [top.interop :as interop]
             [top.log :as log]
+            [top.registry :as registry]
             [top.utils :as utils]))
+
+(def kind :sub)
 
 ;; --- signals ----------------------------------------------------------------
 
@@ -250,14 +253,10 @@
 
 ;; --- registry ---------------------------------------------------------------
 
-(defonce registry (atom {}))
-
 (defn- create-sub [query-v]
-  (let [query-id   (utils/first-in-vector query-v)
-        handler-fn (get @registry query-id)]
-    (if (nil? handler-fn)
-      ;; Note that nil is a valid signal.
-      (log/error "no subscription handler registered for:" (str query-id))
+  (let [query-id (utils/first-in-vector query-v)]
+    ;; Note that nil is a valid signal!
+    (when-let [handler-fn (registry/lookup kind query-id)]
       (let [sub (if (dynamic? query-v)
                   (make-dynamic query-v handler-fn)
                   (handler-fn query-v))]
@@ -278,13 +277,7 @@
   [query-id input-fn compute-fn]
   (letfn [(handler-fn [query-v]
             (make-sub query-v (input-fn query-v) compute-fn))]
-    (swap! registry assoc query-id handler-fn)))
-
-(defn unregister
-  ([]
-   (reset! registry {}))
-  ([id]
-   (swap! registry dissoc id)))
+    (registry/add! kind query-id handler-fn)))
 
 ;; --- subscribe --------------------------------------------------------------
 

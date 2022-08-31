@@ -3,9 +3,10 @@
                                                      assoc-effect get-coeffect]]
             [top.interop :refer [debug-enabled?]]
             [top.log :as log]
+            [top.registry :as registry]
             [top.utils :refer [first-in-vector]]))
 
-(defonce registry (atom {}))
+(def kind :event)
 
 (defn- flatten-and-remove-nils
   "`interceptors` might have nested collections, and contain nil elements.
@@ -35,13 +36,7 @@
    Typically, an `event handler` will be at the end of the chain (wrapped
    in an interceptor)."
   [id interceptors]
-  (swap! registry assoc id (flatten-and-remove-nils id interceptors)))
-
-(defn unregister
-  ([]
-   (reset! registry {}))
-  ([id]
-   (swap! registry dissoc id)))
+  (registry/add! kind id (flatten-and-remove-nils id interceptors)))
 
 ;; --- handle event -----------------------------------------------------------
 
@@ -52,7 +47,7 @@
    and execute it."
   [event-v]
   (let [event-id (first-in-vector event-v)]
-    (when-let [interceptors (get @registry event-id true)]
+    (when-let [interceptors (registry/lookup kind event-id)]
       (if *handling*
         (log/error "while handling" *handling* ", dispatch-sync was called for" event-v
                    ". You can't call dispatch-sync within an event handler.")

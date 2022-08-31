@@ -1,19 +1,14 @@
 (ns top.cofx
   (:require [top.interceptor :refer [->interceptor]]
             [top.log :as log]
+            [top.registry :as registry]
             [top.store :refer [store]]))
 
-(defonce registry (atom {}))
+(def kind :cofx)
 
 (defn register
   [id handler]
-  (swap! registry assoc id handler))
-
-(defn unregister
-  ([]
-   (reset! registry {}))
-  ([id]
-   (swap! registry dissoc id)))
+  (registry/add! kind id handler))
 
 ;; -- Interceptor -------------------------------------------------------------
 
@@ -23,7 +18,7 @@
     :id      :coeffects
     :before  (fn coeffects-before
                [context]
-               (if-let [handler (get @registry id)]
+               (if-let [handler (registry/lookup kind id)]
                  (update context :coeffects handler)
                  (log/error "No cofx handler registered for" id)))))
   ([id value]
@@ -31,7 +26,7 @@
     :id     :coeffects
     :before  (fn coeffects-before
                [context]
-               (if-let [handler (get @registry id)]
+               (if-let [handler (registry/lookup kind id)]
                  (update context :coeffects handler value)
                  (log/error "No cofx handler registered for" id))))))
 

@@ -5,6 +5,7 @@
             [top.dispatch :as dispatch]
             [top.effects :as effects]
             [top.events :as events]
+            [top.registry :as registry]
             [top.store :refer [store]]
             [top.subs :as subs]))
 
@@ -52,9 +53,9 @@
 
 (defn clear-event
   ([]
-   (events/unregister))
+   (registry/clear! events/kind))
   ([id]
-   (events/unregister id)))
+   (registry/remove! events/kind id)))
 
 ;; --- subscriptions ----------------------------------------------------------
 
@@ -114,9 +115,9 @@
 
 (defn clear-sub
   ([]
-   (subs/unregister))
+   (registry/clear! subs/kind))
   ([id]
-   (subs/unregister id)))
+   (registry/remove! subs/kind id)))
 
 (defn clear-subscription-cache! []
   (subs/clear-subscription-cache!))
@@ -129,9 +130,9 @@
 
 (defn clear-fx
   ([]
-   (effects/unregister))
+   (registry/clear! effects/kind))
   ([id]
-   (effects/unregister id)))
+   (registry/remove! effects/kind id)))
 
 ;; --- coeffects --------------------------------------------------------------
 
@@ -141,9 +142,9 @@
 
 (defn clear-cofx
   ([]
-   (cofx/unregister))
+   (registry/clear! cofx/kind))
   ([id]
-   (cofx/unregister id)))
+   (registry/remove! cofx/kind id)))
 
 (defn inject-cofx
   ([id]

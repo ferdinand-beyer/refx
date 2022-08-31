@@ -1,11 +1,12 @@
 (ns top.subs-test
   (:require [cljs.test :refer-macros [async is deftest use-fixtures]]
+            [top.registry :as registry]
             [top.subs :as subs]))
 
 (use-fixtures :each
   {:before (fn []
              (subs/clear-subscription-cache!)
-             (subs/unregister))})
+             (registry/clear-all!))})
 
 (deftest test-atom-signal
   (let [a (atom 0)]
