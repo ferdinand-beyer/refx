@@ -1,7 +1,7 @@
-(ns top.dispatch
-  (:require [top.interop :refer [after-render empty-queue next-tick]]
-            [top.events :as events]
-            [top.log :as log]))
+(ns refx.dispatch
+  (:require [refx.interop :refer [after-render empty-queue next-tick]]
+            [refx.events :as events]
+            [refx.log :as log]))
 
 (def later-fns
   {:flush-dom (fn [f] (after-render #(next-tick f)))

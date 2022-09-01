@@ -1,4 +1,4 @@
-(ns top.interop
+(ns refx.interop
   (:require [goog.async.nextTick]))
 
 (def empty-queue #queue [])

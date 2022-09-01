@@ -1,7 +1,7 @@
-(ns top.hooks
+(ns refx.hooks
   (:require ["react" :as react]
             ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
-            [top.subs :as subs]))
+            [refx.subs :as subs]))
 
 (defn- deps [deps]
   (let [ref (react/useRef deps)]

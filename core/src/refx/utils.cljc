@@ -1,5 +1,5 @@
-(ns top.utils
-  (:require [top.log :as log]))
+(ns refx.utils
+  (:require [refx.log :as log]))
 
 (defn first-in-vector
   [v]

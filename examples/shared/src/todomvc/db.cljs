@@ -1,7 +1,7 @@
 (ns todomvc.db
   (:require [cljs.reader]
             [cljs.spec.alpha :as s]
-            [top.alpha :refer [reg-cofx]]))
+            [refx.alpha :refer [reg-cofx]]))
 
 
 ;; -- Spec --------------------------------------------------------------------

@@ -1,10 +1,10 @@
-(ns top.events
-  (:require [top.interceptor :as interceptor :refer [->interceptor
+(ns refx.events
+  (:require [refx.interceptor :as interceptor :refer [->interceptor
                                                      assoc-effect get-coeffect]]
-            [top.interop :refer [debug-enabled?]]
-            [top.log :as log]
-            [top.registry :as registry]
-            [top.utils :refer [first-in-vector]]))
+            [refx.interop :refer [debug-enabled?]]
+            [refx.log :as log]
+            [refx.registry :as registry]
+            [refx.utils :refer [first-in-vector]]))
 
 (def kind :event)
 

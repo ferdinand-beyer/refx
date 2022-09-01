@@ -1,11 +1,11 @@
-# top.http
+# refx.http
 
 Port of [`re-frame-http-fx`][http-fx], using [`cljs-ajax`][cljs-ajax] under the hood.
 
 Provides two flavors:
 
-* `top.http` -- uses [`ajax-request`][ajax-request], as `:http` and `:http-xhrio`
-* `top.http.easy` -- uses the "easy API" (provides more convenience), as `:http` and `:http-easy`
+* `refx.http` -- uses [`ajax-request`][ajax-request], as `:http` and `:http-xhrio`
+* `refx.http.easy` -- uses the "easy API" (provides more convenience), as `:http` and `:http-easy`
 
 The simple API requires you to specify full request and response format descriptions,
 as described in [Advanced Formats][ajax-formats].  The easy API also support keywords

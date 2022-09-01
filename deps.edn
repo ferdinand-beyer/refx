@@ -1,9 +1,9 @@
-{:deps {top/core {:local/root "core"}
-        top/http {:local/root "http"}}
+{:deps {refx/core {:local/root "core"}
+        refx/http {:local/root "http"}}
  :aliases
  {:dev   {:extra-paths ["dev"]
           :extra-deps {thheller/shadow-cljs {:mvn/version "2.19.5"}
                        binaryage/devtools {:mvn/version "1.0.6"}}}
   :test  {:extra-paths ["core/test"]}
-  :helix {:extra-deps {top.example/helix {:local/root "examples/helix"}}}
-  :uix   {:extra-deps {top.example/uix {:local/root "examples/uix"}}}}}
+  :helix {:extra-deps {refx.example/helix {:local/root "examples/helix"}}}
+  :uix   {:extra-deps {refx.example/uix   {:local/root "examples/uix"}}}}}

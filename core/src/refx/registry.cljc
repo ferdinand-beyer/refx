@@ -1,6 +1,6 @@
-(ns top.registry
-  (:require [top.interop :as interop]
-            [top.log :as log]))
+(ns refx.registry
+  (:require [refx.interop :as interop]
+            [refx.log :as log]))
 
 (def registry (atom {}))
 

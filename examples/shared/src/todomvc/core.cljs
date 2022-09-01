@@ -4,7 +4,7 @@
             [secretary.core :as secretary]
             [todomvc.events] ;; These two are only required to make the compiler
             [todomvc.subs] ;; load them (see docs/App-Structure.md)
-            [top.alpha :as top :refer [dispatch dispatch-sync]])
+            [refx.alpha :as refx :refer [dispatch dispatch-sync]])
   (:import [goog History]
            [goog.history EventType]))
 

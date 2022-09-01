@@ -1,6 +1,6 @@
-(ns top.http
-  (:require [top.alpha :refer [reg-fx]]
-            [top.http.impl :as impl]))
+(ns refx.http
+  (:require [refx.alpha :refer [reg-fx]]
+            [refx.http.impl :as impl]))
 
 (def simple-http-effect
   "Simple HTTP effect, similar to re-frame's `:http-xhrio`."

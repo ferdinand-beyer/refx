@@ -1,6 +1,6 @@
 (ns todomvc.uix.views
   (:require [uix.core.alpha :as uix]
-            [top.alpha :refer [subscribe dispatch]]
+            [refx.alpha :refer [use-sub dispatch]]
             [clojure.string :as str]))
 
 
@@ -50,8 +50,8 @@
 
 (defn task-list
   []
-  (let [visible-todos (subscribe [:visible-todos])
-        all-complete? (subscribe [:all-complete?])]
+  (let [visible-todos (use-sub [:visible-todos])
+        all-complete? (use-sub [:all-complete?])]
       [:section#main
         [:input#toggle-all
           {:type "checkbox"
@@ -67,8 +67,8 @@
 
 (defn footer-controls
   []
-  (let [[active done] (subscribe [:footer-counts])
-        showing       (subscribe [:showing])
+  (let [[active done] (use-sub [:footer-counts])
+        showing       (use-sub [:showing])
         a-fn          (fn [filter-kw txt]
                         [:a {:class (when (= filter-kw showing) "selected")
                              :href (str "#/" (name filter-kw))} txt])]
@@ -100,7 +100,7 @@
   [:<>
    [:section#todoapp
     [task-entry]
-    (when (seq (subscribe [:todos]))
+    (when (seq (use-sub [:todos]))
       [task-list])
     [footer-controls]]
    [:footer#info

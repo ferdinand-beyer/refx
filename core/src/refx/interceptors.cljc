@@ -1,8 +1,10 @@
-(ns top.interceptors
+(ns refx.interceptors
   (:require [clojure.data :as data]
-            [top.interceptor :refer [->interceptor assoc-coeffect assoc-effect
-                                     get-coeffect get-effect update-coeffect]]
-            [top.log :as log]))
+            [refx.interceptor :refer [->interceptor assoc-coeffect
+                                      assoc-effect get-coeffect get-effect
+                                      update-coeffect]]
+            [refx.interop :as interop]
+            [refx.log :as log]))
 
 (def debug
   (->interceptor
@@ -129,3 +131,15 @@
                      (assoc-in new-db out-path)
                      (assoc-effect context :db))
                 context)))))
+
+(defonce global-interceptors (atom interop/empty-queue))
+
+(def inject-global-interceptors
+  "An interceptor which adds registered global interceptors to the context's queue.
+
+   NOTE: :queue is a Clojure.lang.PersistentQueue and not a vector."
+  (->interceptor
+   :id     :inject-global-interceptors
+   :before (fn inject-global-interceptors-before
+             [context]
+             (update context :queue #(into @global-interceptors %)))))

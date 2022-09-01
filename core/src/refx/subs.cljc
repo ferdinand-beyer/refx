@@ -1,8 +1,8 @@
-(ns top.subs
-  (:require [top.interop :as interop]
-            [top.log :as log]
-            [top.registry :as registry]
-            [top.utils :as utils]))
+(ns refx.subs
+  (:require [refx.interop :as interop]
+            [refx.log :as log]
+            [refx.registry :as registry]
+            [refx.utils :as utils]))
 
 (def kind :sub)
 
@@ -174,7 +174,7 @@
 ;; --- dynamic ----------------------------------------------------------------
 ;;
 ;; Dynamic subscriptions allow callers to place signals in query vectors:
-;; (subscribe [:dynamic (sub [:param1]) (sub [:param2])])
+;; (sub [:dynamic (sub [:param1]) (sub [:param2])])
 ;;
 ;; This is not very useful in views, as these should be composed in such a way
 ;; that child components take parameters for their subscriptions as props.
@@ -282,7 +282,7 @@
 
    Callers must make sure that the returned object is eventually used, or it
    will leak memory.  This is designed to construct custom subscriptions in
-   handlers, React components should use `subscribe` instead."
+   handlers, React components should use the `use-sub` hook instead."
   [query-v]
   (or (cache-lookup query-v)
       (create-sub query-v)))

@@ -1,7 +1,7 @@
-(ns top.interceptor
+(ns refx.interceptor
   (:require [clojure.set :as set]
-            [top.interop :refer [debug-enabled? empty-queue]]
-            [top.log :as log]))
+            [refx.interop :refer [debug-enabled? empty-queue]]
+            [refx.log :as log]))
 
 (def mandatory-interceptor-keys #{:id :after :before})
 

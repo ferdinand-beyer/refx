@@ -1,11 +1,11 @@
-(ns top.effects
-  (:require [top.dispatch :as dispatch]
-            [top.events :as events]
-            [top.interceptor :refer [->interceptor]]
-            [top.interop :as interop]
-            [top.log :as log]
-            [top.registry :as registry]
-            [top.store :refer [store]]))
+(ns refx.effects
+  (:require [refx.dispatch :as dispatch]
+            [refx.events :as events]
+            [refx.interceptor :refer [->interceptor]]
+            [refx.interop :as interop]
+            [refx.log :as log]
+            [refx.registry :as registry]
+            [refx.store :refer [store]]))
 
 (def kind :fx)
 

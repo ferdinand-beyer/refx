@@ -1,5 +1,5 @@
 (ns todomvc.subs
-  (:require [top.alpha :refer [reg-sub sub]]))
+  (:require [refx.alpha :refer [reg-sub sub]]))
 
 ;; -------------------------------------------------------------------------------------
 ;; Layer 2
@@ -13,7 +13,7 @@
 ;; that `app-db` changes (in any way). As a result, we want Layer 2 to be trivial.
 ;;
 (reg-sub
-  :showing          ;; usage:   (subscribe [:showing])
+  :showing          ;; usage:   (use-sub [:showing])
   (fn [db _]        ;; db is the (map) value stored in the app-db atom
     (:showing db))) ;; extract a value from the application state
 
@@ -25,7 +25,7 @@
 (defn sorted-todos
   [db _]
   (:todos db))
-(reg-sub :sorted-todos sorted-todos)    ;; usage: (subscribe [:sorted-todos])
+(reg-sub :sorted-todos sorted-todos)    ;; usage: (use-sub [:sorted-todos])
 
 ;; -------------------------------------------------------------------------------------
 ;; Layer 3
@@ -58,27 +58,27 @@
 ;; But now we are dealing with intermediate (layer 3) nodes, we'll need to provide both fns.
 ;;
 (reg-sub
-  :todos        ;; usage:   (subscribe [:todos])
+  :todos        ;; usage:   (use-sub [:todos])
 
   ;; This function returns the input signals.
   ;; In this case, it returns a single signal.
   ;; Although not required in this example, it is called with two parameters
-  ;; being the two values supplied in the originating `(subscribe X Y)`.
+  ;; being the two values supplied in the originating `(use-sub X Y)`.
   ;; X will be the query vector and Y is an advanced feature and out of scope
   ;; for this explanation.
   (fn [query-v _]
     (sub [:sorted-todos]))    ;; returns a single input signal
 
   ;; This 2nd fn does the computation. Data values in, derived data out.
-  ;; It is the same as the two simple subscription handlers up at the top.
+  ;; It is the same as the two simple subscription handlers up at the refx.
   ;; Except they took the value in app-db as their first argument and, instead,
   ;; this function takes the value delivered by another input signal, supplied by the
-  ;; function above: (subscribe [:sorted-todos])
+  ;; function above: (use-sub [:sorted-todos])
   ;;
   ;; Subscription handlers can take 3 parameters:
   ;;  - the input signals (a single item, a vector or a map)
   ;;  - the query vector supplied to query-v  (the query vector argument
-  ;; to the "subscribe") and the 3rd one is for advanced cases, out of scope for this discussion.
+  ;; to the "use-sub") and the 3rd one is for advanced cases, out of scope for this discussion.
   (fn [sorted-todos query-v _]
     (vals sorted-todos)))
 

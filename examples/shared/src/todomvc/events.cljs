@@ -1,8 +1,8 @@
 (ns todomvc.events
   (:require
    [todomvc.db :refer [default-db todos->local-store]]
-   [top.alpha :refer [reg-event-db reg-event-fx inject-cofx]]
-   [top.interceptors :refer [path after]]
+   [refx.alpha :refer [reg-event-db reg-event-fx inject-cofx]]
+   [refx.interceptors :refer [path after]]
    [cljs.spec.alpha :as s]))
 
 

@@ -1,7 +1,7 @@
-(ns top.subs-test
+(ns refx.subs-test
   (:require [cljs.test :refer-macros [async is deftest use-fixtures]]
-            [top.registry :as registry]
-            [top.subs :as subs]))
+            [refx.registry :as registry]
+            [refx.subs :as subs]))
 
 (use-fixtures :each
   {:before (fn []

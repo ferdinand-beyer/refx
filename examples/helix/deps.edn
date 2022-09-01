@@ -1,4 +1,4 @@
 {:paths ["src"]
- :deps {top/core {:local/root "../../core"}
+ :deps {refx/core {:local/root "../../core"}
         examples/shared {:local/root "../shared"}
         lilactown/helix {:mvn/version "0.1.8"}}}

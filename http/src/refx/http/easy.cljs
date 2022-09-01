@@ -1,7 +1,7 @@
-(ns top.http.easy
+(ns refx.http.easy
   (:require [ajax.easy :as easy]
-            [top.alpha :refer [reg-fx]]
-            [top.http.impl :as impl]))
+            [refx.alpha :refer [reg-fx]]
+            [refx.http.impl :as impl]))
 
 (def easy-http-effect
   "An HTTP effect that allows for more convenient request options, at the

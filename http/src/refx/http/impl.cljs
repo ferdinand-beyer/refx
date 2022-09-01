@@ -1,8 +1,8 @@
-(ns top.http.impl
+(ns refx.http.impl
   "Port of day8/re-frame-http-fx."
   (:require [ajax.simple :as simple]
             [ajax.xhrio]
-            [top.alpha :refer [dispatch]])
+            [refx.alpha :refer [dispatch]])
   (:import [goog.net ErrorCode XhrIo]))
 
 ; see http://docs.closure-library.googlecode.com/git/class_goog_net_XhrIo.html
@@ -39,7 +39,7 @@
   "Makes an effect handler for HTTP requests cia `cljs-ajax`.  The optional
    `transform-fn` will be applied to the request opts map right before passing
    it to `ajax-request`.  This can for example be used to allow more convenient
-   defaults, such as `ajax.easy/transform-opts` (see `top.http.easy`)."
+   defaults, such as `ajax.easy/transform-opts` (see `refx.http.easy`)."
   ([]
    (make-http-effect identity))
   ([transform-fn]

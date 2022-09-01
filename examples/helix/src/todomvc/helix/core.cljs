@@ -4,7 +4,7 @@
             [helix.core :refer [$]]
             [todomvc.core]
             [todomvc.helix.views :as views]
-            [top.alpha :as top]))
+            [refx.alpha :as refx]))
 
 ;; -- Entry Point -------------------------------------------------------------
 
@@ -22,7 +22,7 @@
   ;; The `:dev/after-load` metadata causes this function to be called
   ;; after shadow-cljs hot-reloads code. We force a UI update by clearing
   ;; the Reframe subscription cache.
-  (top/clear-subscription-cache!)
+  (refx/clear-subscription-cache!)
   (render))
 
 (defn ^:export init

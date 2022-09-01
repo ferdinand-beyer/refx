@@ -2,7 +2,7 @@
   (:require [helix.core :refer [defnc $ <>]]
             [helix.hooks :refer [use-state]]
             [helix.dom :as d]
-            [top.alpha :refer [subscribe dispatch]]
+            [refx.alpha :refer [use-sub dispatch]]
             [clojure.string :as str]))
 
 
@@ -51,8 +51,8 @@
 
 (defnc task-list
   []
-  (let [visible-todos (subscribe [:visible-todos])
-        all-complete? (subscribe [:all-complete?])]
+  (let [visible-todos (use-sub [:visible-todos])
+        all-complete? (use-sub [:all-complete?])]
     (d/section {:id "main"}
                (d/input {:id "toggle-all"
                          :type "checkbox"
@@ -67,8 +67,8 @@
 
 (defnc footer-controls
   []
-  (let [[active done] (subscribe [:footer-counts])
-        showing       (subscribe [:showing])
+  (let [[active done] (use-sub [:footer-counts])
+        showing       (use-sub [:showing])
         a-fn          (fn [filter-kw txt]
                         (d/a {:class (when (= filter-kw showing) "selected")
                               :href (str "#/" (name filter-kw))} txt))]
@@ -101,7 +101,7 @@
   (<>
    (d/section {:id "todoapp"}
               ($ task-entry)
-              (when (seq (subscribe [:todos]))
+              (when (seq (use-sub [:todos]))
                 ($ task-list))
               ($ footer-controls))
    (d/footer {:id "info"}

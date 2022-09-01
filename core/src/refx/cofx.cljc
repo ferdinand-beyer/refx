@@ -1,8 +1,8 @@
-(ns top.cofx
-  (:require [top.interceptor :refer [->interceptor]]
-            [top.log :as log]
-            [top.registry :as registry]
-            [top.store :refer [store]]))
+(ns refx.cofx
+  (:require [refx.interceptor :refer [->interceptor]]
+            [refx.log :as log]
+            [refx.registry :as registry]
+            [refx.store :refer [store]]))
 
 (def kind :cofx)
 

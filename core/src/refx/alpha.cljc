@@ -1,16 +1,15 @@
-(ns top.alpha
-  (:refer-clojure :exclude [->])
-  (:require [top.builtins :as builtins]
-            [top.cofx :as cofx]
-            [top.dispatch :as dispatch]
-            [top.effects :as effects]
-            [top.events :as events]
-            [top.hooks :as hooks]
-            [top.interceptor :as interceptor]
-            [top.registry :as registry]
-            [top.store :refer [store]]
-            [top.subs :as subs]
-            [top.utils :as utils]))
+(ns refx.alpha
+  (:require #?(:cljs [refx.hooks :as hooks])
+            [refx.cofx :as cofx]
+            [refx.dispatch :as dispatch]
+            [refx.effects :as effects]
+            [refx.events :as events]
+            [refx.interceptor :as interceptor]
+            [refx.interceptors :as interceptors]
+            [refx.registry :as registry]
+            [refx.store :refer [store]]
+            [refx.subs :as subs]
+            [refx.utils :as utils]))
 
 ;; --- dispatch ---------------------------------------------------------------
 
@@ -27,7 +26,7 @@
 ;; TODO: Provide a registry of interceptors as well, so they can be referenced by ID.
 
 (def base-interceptors
-  [cofx/inject-db effects/do-fx builtins/inject-global-interceptors])
+  [cofx/inject-db effects/do-fx interceptors/inject-global-interceptors])
 
 (defn- -reg-event [id interceptors handler-interceptor]
   (events/register id (conj base-interceptors interceptors handler-interceptor)))
@@ -72,26 +71,12 @@
    (let [qs (cons query-v qs)]
      (fn [_] (mapv subs/sub qs)))))
 
-(defn ->
-  "Like re-frame's `:->` sugar, wraps a handler function that ignores the
-   query vector."
-  [f]
-  (fn [input _]
-    (f input)))
-
-(defn =>
-  "Like re-frame's `:->` sugar, wraps a handler function that takes the
-   \"arguments\" of a query vector, without the query ID."
-  [f]
-  (fn [input [_ & qs]]
-    (apply f input qs)))
-
 (defn- parse-reg-sub-sugar [args]
   (let [[qs f] (reduce (fn [[qs f] [op arg]]
                          (case op
                            :<- [(conj qs arg) f]
-                           :-> [qs (-> arg)]
-                           :=> [qs (=> arg)]
+                           :-> [qs (fn [v] (arg v))]
+                           :=> [qs (fn [v [_ & vs]] (apply arg v vs))]
                            [qs op]))
                        [[] nil]
                        (partition-all 2 args))]
@@ -109,8 +94,9 @@
        (reg-sub query-id input-fn compute-fn)
        (reg-sub query-id compute-fn)))))
 
-(defn subscribe [query-v]
-  (hooks/use-sub query-v))
+#?(:cljs
+   (defn use-sub [query-v]
+     (hooks/use-sub query-v)))
 
 (defn clear-sub
   ([]

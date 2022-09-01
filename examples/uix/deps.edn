@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {top/core {:local/root "../../core"}
+ :deps {refx/core {:local/root "../../core"}
         examples/shared {:local/root "../shared"}
 
         uix/core {:git/url "https://github.com/roman01la/uix.git"
