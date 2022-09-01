@@ -104,7 +104,7 @@
    (subs/register query-id input-fn compute-fn))
   ;; re-frame compat
   ([query-id x y z & args]
-   (let [[input-fn compute-fn] (parse-reg-sub-sugar (concat [x y z] args))]
+   (let [[input-fn compute-fn] (parse-reg-sub-sugar (list* x y z args))]
      (if input-fn
        (reg-sub query-id input-fn compute-fn)
        (reg-sub query-id compute-fn)))))
