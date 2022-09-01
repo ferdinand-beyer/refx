@@ -2,7 +2,7 @@
   (:require [refx.interceptor :refer [->interceptor]]
             [refx.log :as log]
             [refx.registry :as registry]
-            [refx.store :refer [store]]))
+            [refx.db :refer [app-db]]))
 
 (def kind :cofx)
 
@@ -39,7 +39,7 @@
  :db
  (fn db-coeffects-handler
    [coeffects]
-   (assoc coeffects :db @store)))
+   (assoc coeffects :db @app-db)))
 
 ;; Because this interceptor is used so much, we reify it
 (def inject-db (inject-cofx :db))

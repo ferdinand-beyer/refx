@@ -5,7 +5,7 @@
             [refx.interop :as interop]
             [refx.log :as log]
             [refx.registry :as registry]
-            [refx.store :refer [store]]))
+            [refx.db :refer [app-db]]))
 
 (def kind :fx)
 
@@ -18,8 +18,8 @@
 ;; -- Interceptor -------------------------------------------------------------
 
 (defn- db-effect [db]
-  (when-not (identical? @store db)
-    (reset! store db)))
+  (when-not (identical? @app-db db)
+    (reset! app-db db)))
 
 (def do-fx
   "An interceptor whose `:after` actions the contents of `:effects`. As a result,

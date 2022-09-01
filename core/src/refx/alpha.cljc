@@ -7,7 +7,7 @@
             [refx.interceptor :as interceptor]
             [refx.interceptors :as interceptors]
             [refx.registry :as registry]
-            [refx.store :refer [store]]
+            [refx.db :refer [app-db]]
             [refx.subs :as subs]
             [refx.utils :as utils]))
 
@@ -84,7 +84,7 @@
 
 (defn reg-sub
   ([query-id compute-fn]
-   (reg-sub query-id (constantly store) compute-fn))
+   (reg-sub query-id (constantly app-db) compute-fn))
   ([query-id input-fn compute-fn]
    (subs/register query-id input-fn compute-fn))
   ;; re-frame compat
