@@ -9,14 +9,14 @@ No releases yet, but you can use the Git coordinate:
 
 ```edn
 {:deps {refx.core {:git/url "https://github.com/ferdinand-beyer/refx.git"
-                  :deps/root "core"
-                  :sha "COMMIT_SHA"}}}
+                   :git/sha "COMMIT_SHA"
+                   :deps/root "core"}}}
 ```
 
 ## Status
 
 **This library is in alpha state.**  While most of the code was copied
-directly from re-frame, and should be pretty stable, refx's modifications
+directly from re-frame, and should be pretty stable, refx's additions
 need more testing, and the API might still change drastically.
 
 ## Differences to re-frame

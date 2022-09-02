@@ -1,6 +1,5 @@
 (ns refx.subs
   (:require [refx.interop :as interop]
-            [refx.log :as log]
             [refx.registry :as registry]
             [refx.utils :as utils]))
 
@@ -13,7 +12,7 @@
 
    Very similar to IDeref + IWatchable, but other than Clojure watches, our
    listeners do not get values, as they are expected to be computed on demand."
-  (-value [this])
+  (-value [this]) ; TODO: "sample?"
   (-add-listener [this k f]
     "Register a listener that will be called without arguments.")
   (-remove-listener [this k]))
@@ -53,6 +52,7 @@
 
 (defprotocol ISub
   (-query-v [this])
+  (-orphan? [this])
   (-dispose! [this]))
 
 (defn- dispose! [sub]
@@ -64,15 +64,13 @@
 ;; requested again.
 ;; E.g. we could trigger background jobs using window.requestIdleCallback()
 (defn- sub-orphaned [sub]
-  (dispose! sub))
+  (interop/next-tick #(when (-orphan? sub)
+                        (dispose! sub))))
 
 (defn clear-subscription-cache! []
   (doseq [[_ sub] @sub-cache]
-    (dispose! sub))
-  (when (not-empty @sub-cache)
-    (log/warn "The subscription cache isn't empty after being cleared")))
+    (dispose! sub)))
 
-;; TODO: Use pure JavaScript for speed?
 (deftype Listeners [^:mutable listeners]
   Object
   (empty? [_] (empty? listeners))
@@ -87,18 +85,12 @@
 (defn- make-listeners []
   (Listeners. nil))
 
-(def object-uid #?(:cljs goog/getUid
-                   :clj  System/identityHashCode))
-
-(defn object-key [o]
-  (str "__obj_" (object-uid o)))
-
 (defn- map-signals
   "Apply `f` to a node input value."
   [f input]
   (cond
     (signal? input) (f input)
-    (sequential? input) (mapv f input)
+    (sequential? input) (mapv f input) ; run-signal! assumes this is not lazy!
     (map? input) (update-vals input f)
     :else input))
 
@@ -110,19 +102,36 @@
   (compute-fn (map-signals -value input) query-v))
 
 (deftype Sub [query-v input compute-fn
-              ^Listeners listeners
               ^:mutable value
-              ^:mutable dirty?]
+              ^:mutable dirty?
+              ^Listeners listeners]
+
+  ISub
+  (-query-v [_] query-v)
+  (-orphan? [_] (.empty? listeners))
+  (-dispose! [this]
+    (run-signals! #(-remove-listener % this) input))
+
+  ISignal
+  (-value [_] value)
+  (-add-listener [_ k f]
+    (.add listeners k f))
+  (-remove-listener [this k]
+    (.remove listeners k)
+    (when (.empty? listeners)
+      (sub-orphaned this)))
+
   Object
   (init! [this]
-    (let [key (object-key this)
-          cb  #(.invalidate! this)]
-      (run-signals! #(-add-listener % key cb) input)))
+    (let [cb  #(.invalidate! this)]
+      (run-signals! #(-add-listener % this cb) input)))
 
   (invalidate! [this]
     (when-not dirty?
       (set! dirty? true)
-      (interop/next-tick #(.update! this))))
+      ;; TODO: Do we need invalidate-dirty or just update directly?
+      (.update! this)
+      #_(interop/next-tick #(.update! this))))
 
   (update! [_]
     (let [new-value (compute-sub query-v input compute-fn)]
@@ -132,34 +141,19 @@
         (.notify listeners))))
 
   #?@(:cljs
-      [IEquiv
+      [IDeref
+       (-deref [this] (-value this))
+
+       IEquiv
        (-equiv [this other] (identical? this other))
 
        IHash
-       (-hash [this] (object-uid this))
-
-       IDeref
-       (-deref [this] (-value this))])
-
-  ISub
-  (-query-v [_] query-v)
-  (-dispose! [this]
-    (let [key (object-key this)]
-      (run-signals! #(-remove-listener % key) input)))
-
-  ISignal
-  (-value [_] value)
-  (-add-listener [_ k f]
-    (.add listeners k f))
-  (-remove-listener [this k]
-    (.remove listeners k)
-    (when (.empty? listeners)
-      (sub-orphaned this))))
+       (-hash [this] (goog/getUid this))]))
 
 (defn- make-sub
   [query-v input compute-fn]
   (let [value (compute-sub query-v input compute-fn)
-        sub   (Sub. query-v input compute-fn (make-listeners) value false)]
+        sub   (->Sub query-v input compute-fn value false (make-listeners))]
     (.init! sub)
     sub))
 
@@ -185,41 +179,15 @@
 ;; Dynamic subs wrap a special "query-sub" that computes the dynamic query
 ;; vector, and a mutable "value-sub" that is updated whenever the query sub
 ;; changes.
-(deftype DynamicSub [query-v query-sub handler-fn
-                     ^Listeners listeners
-                     ^:mutable value-sub]
-  Object
-  (init! [this]
-    (.update! this)
-    (-add-listener query-sub (object-key this) #(.update! this)))
-
-  (update! [this]
-    (let [qv  (-value query-sub)
-          key (object-key this)]
-      (when value-sub
-        (-remove-listener value-sub key))
-      (set! value-sub (or (cache-lookup qv)
-                          (handler-fn qv)))
-      (-add-listener value-sub key #(.notify listeners))
-      (.notify listeners)))
-
-  #?@(:cljs
-      [IEquiv
-       (-equiv [this other] (identical? this other))
-
-       IHash
-       (-hash [this] (object-uid this))
-
-       IDeref
-       (-deref [this] (-value this))])
-
+(deftype DynamicSub [query-v handler-fn query-sub ^:mutable value-sub
+                     ^Listeners listeners]
   ISub
   (-query-v [_] query-v)
+  (-orphan? [_] (.empty? listeners))
   (-dispose! [this]
-    (let [key (object-key this)]
-      (-remove-listener query-sub key)
-      (when value-sub
-        (-remove-listener value-sub key))))
+    (-remove-listener query-sub this)
+    (when value-sub
+      (-remove-listener value-sub this)))
 
   ISignal
   (-value [_]
@@ -229,7 +197,31 @@
   (-remove-listener [this k]
     (.remove listeners k)
     (when (.empty? listeners)
-      (sub-orphaned this))))
+      (sub-orphaned this)))
+
+  Object
+  (init! [this]
+    (.update! this)
+    (-add-listener query-sub this #(.update! this)))
+
+  (update! [this]
+    (let [qv (-value query-sub)]
+      (when value-sub
+        (-remove-listener value-sub this))
+      (set! value-sub (or (cache-lookup qv)
+                          (handler-fn qv)))
+      (-add-listener value-sub this #(.notify listeners))
+      (.notify listeners)))
+
+  #?@(:cljs
+      [IEquiv
+       (-equiv [this other] (identical? this other))
+
+       IHash
+       (-hash [this] (goog/getUid this))
+
+       IDeref
+       (-deref [this] (-value this))]))
 
 ;; Don't consider nil dynamic, even though it is a valid signal.
 (def ^:private some-signal?
@@ -261,7 +253,7 @@
   "Make a dynamic subscription."
   [query-v handler-fn]
   (let [query-sub (make-sub [::query query-v] (dynamic-input query-v) dynamic-compute)
-        dynamic   (DynamicSub. query-v query-sub handler-fn (make-listeners) nil)]
+        dynamic   (->DynamicSub query-v handler-fn query-sub nil (make-listeners))]
     (.init! dynamic)
     dynamic))
 

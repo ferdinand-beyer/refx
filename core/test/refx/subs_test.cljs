@@ -97,6 +97,10 @@
           sub (subs/sub [:dynamic k])]
       (is (= #{[:a] [:b] [:c] [:k] [:dynamic k]}
              (-> @subs/sub-cache keys set)))
-      (subs/-add-listener sub :test #())
-      (subs/-remove-listener sub :test)
-      (is (empty? @subs/sub-cache)))))
+      (async done
+             (subs/-add-listener sub :test #())
+             (subs/-remove-listener sub :test)
+             (js/setTimeout (fn []
+                              (is (empty? @subs/sub-cache))
+                              (done))
+                            10)))))

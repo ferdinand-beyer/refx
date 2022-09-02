@@ -39,7 +39,7 @@
   [context key f & args]
   (apply update-in context [:effects key] f args))
 
-;; -- CoEffect Helpers  ---------------------------------------------------------------------------
+;; -- Coeffect Helpers  ---------------------------------------------------------------------------
 
 (defn get-coeffect
   ([context]
@@ -89,17 +89,17 @@
   return a modified version of it, the way is clear for an interceptor
   to introspect the stack or queue, or even modify the queue
   (add new interceptors via `enqueue`?). This is a very fluid arrangement."
-  ([context direction]
-   (loop [context context]
-     (let [queue (:queue context)]        ;; future interceptors
-       (if (empty? queue)
-         context
-         (let [interceptor (peek queue)   ;; next interceptor to call
-               stack (:stack context)]    ;; already completed interceptors
-           (recur (-> context
-                      (assoc :queue (pop queue)
-                             :stack (conj stack interceptor))
-                      (invoke-interceptor-fn interceptor direction)))))))))
+  [context direction]
+  (loop [context context]
+    (let [queue (:queue context)]
+      (if (empty? queue)
+        context
+        (let [interceptor (peek queue)
+              stack (:stack context)]
+          (recur (-> context
+                     (assoc :queue (pop queue)
+                            :stack (conj stack interceptor))
+                     (invoke-interceptor-fn interceptor direction))))))))
 
 (defn enqueue
   [context interceptors]
