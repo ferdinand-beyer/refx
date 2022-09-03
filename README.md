@@ -36,7 +36,18 @@ need more testing, and the API might still change drastically.
 See the [`examples`](examples/) directory for re-frame's **todomvc**,
 implemented with [Helix][helix] and [UIx][uix].
 
+## License
+
+Distributed under the [MIT License](LICENSE).  
+Copyright &copy; 2022 [Ferdinand Beyer]
+
+This software uses third-party open-source software.  
+See [NOTICES](NOTICES) for individual copyright and license notices.
+
+
 [re-frame]: https://github.com/day8/re-frame
 [reagent]: https://github.com/reagent-project/reagent
 [uix]: https://github.com/roman01la/uix
 [helix]: https://github.com/lilactown/helix
+
+[Ferdinand Beyer]: https://fbeyer.com
