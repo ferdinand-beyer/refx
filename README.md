@@ -30,6 +30,8 @@ need more testing, and the API might still change drastically.
   extra `dyn-v` argument.  See the next point for a superior alternative.
 * query vectors can contain signals returned by `sub` for dynamic
   subscriptions
+* subscriptions support other signals than `app-db` as input.  Anything
+  that satisfies the `ISignal` protocol, which includes atoms.
 
 ## Examples
 
