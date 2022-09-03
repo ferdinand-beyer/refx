@@ -19,7 +19,7 @@ No releases yet, but you can use the Git coordinate:
 directly from re-frame, and should be pretty stable, refx's additions
 need more testing, and the API might still change drastically.
 
-## Differences to re-frame
+## Differences from re-frame
 
 * `subscribe` has been replaced with two functions:
   * `sub` returns a subscription _signal_, to be used in input functions
