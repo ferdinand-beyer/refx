@@ -44,7 +44,7 @@ Distributed under the [MIT License](LICENSE).
 Copyright &copy; 2022 [Ferdinand Beyer]
 
 This software uses third-party open-source software.  
-See [NOTICES](NOTICES) for individual copyright and license notices.
+See [NOTICE](NOTICE) for individual copyright and license notices.
 
 
 [re-frame]: https://github.com/day8/re-frame
