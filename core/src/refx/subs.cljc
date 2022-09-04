@@ -10,17 +10,22 @@
 (defprotocol ISignal
   "Protocol for signal types.
 
-   Very similar to IDeref + IWatchable, but other than Clojure watches, our
-   listeners do not get values, as they are expected to be computed on demand."
-  (-value [this]) ; TODO: "sample?"
+   Very similar to IDeref + IWatchable (e.g. atoms), with the difference that
+   listeners will not receive old or new values."
+  (-value [this]
+    "Returns the current value of the signal.")
   (-add-listener [this k f]
     "Register a listener that will be called without arguments.")
-  (-remove-listener [this k]))
+  (-remove-listener [this k]
+    "Removes a listener previous registered with `-add-listener`."))
 
 (defn signal? [x]
   (satisfies? ISignal x))
 
 (extend-protocol ISignal
+  ;; Useful for missing handlers.  For comparison, re-frame's `subscribe`
+  ;; will return `nil`, which is guarenteed to break views that will deref
+  ;; subscribed values.
   nil
   (-value [_] nil)
   (-add-listener [_ _ _])
