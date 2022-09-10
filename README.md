@@ -19,6 +19,11 @@ No releases yet, but you can use the Git coordinate:
 directly from re-frame, and should be pretty stable, refx's additions
 need more testing, and the API might still change drastically.
 
+## Rationale
+
+[See this blog post](https://fbeyer.com/posts/refx-origins/)
+for an explanation why I started working on refx.
+
 ## Differences from re-frame
 
 * `subscribe` has been replaced with two functions:
