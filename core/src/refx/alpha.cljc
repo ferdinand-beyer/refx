@@ -86,7 +86,14 @@
   ([query-id compute-fn]
    (reg-sub query-id (constantly app-db) compute-fn))
   ([query-id input-fn compute-fn]
-   (subs/register query-id input-fn compute-fn))
+   ;; If we have a keyword, attempt parsing syntax sugar. Otherwise treat
+   ;; the input-fn as a function returning a vector of signals.
+   (if (keyword? input-fn)
+     (let [[new-input new-compute] (parse-reg-sub-sugar (list input-fn compute-fn))]
+       (subs/register query-id
+                      (or new-input (constantly app-db))
+                      new-compute))
+     (subs/register query-id input-fn compute-fn)))
   ;; re-frame compat
   ([query-id x y z & args]
    (let [[input-fn compute-fn] (parse-reg-sub-sugar (list* x y z args))]
