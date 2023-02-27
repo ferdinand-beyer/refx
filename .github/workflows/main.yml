@@ -1,0 +1,50 @@
+name: Main
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+    
+      - name: Prepare Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+      
+      - name: Prepare Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install Clojure Tools
+        uses: DeLaGuardo/setup-clojure@05cb4bfdf57855f122e75b71e45224775cdfc4a0 # 9.5
+        with:
+          cli: 1.11.1.1224
+
+      - name: Prepare Classpath
+        run: clojure -A:build:dev:test -P
+
+      - name: Run Tests
+        run: |
+          yarn install
+          yarn run karma:compile
+          yarn run karma:ci
+
+      - name: Build Jars
+        run: clojure -T:build jars
+
+      - name: Deploy Jars
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: clojure -T:build deploy
+        env:
+          CLOJARS_USERNAME: fbeyer
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_DEPLOY_TOKEN }}

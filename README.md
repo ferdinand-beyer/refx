@@ -1,23 +1,42 @@
 # refx
+
+[![Build Status](https://img.shields.io/github/actions/workflow/status/ferdinand-beyer/refx/main.yml?branch=main)](https://github.com/ferdinand-beyer/refx/actions)
+[![cljdoc](https://cljdoc.org/badge/com.fbeyer/refx)][cljdoc]
+[![Clojars](https://img.shields.io/clojars/v/com.fbeyer/refx.svg)][clojars]
+
 [re-frame] port using React hooks instead of [Reagent][reagent].
 
 Designed to be used with [Helix][helix] or [UIx][uix].
-
-## Installation
-
-No releases yet, but you can use the Git coordinate:
-
-```edn
-{:deps {refx.core {:git/url "https://github.com/ferdinand-beyer/refx.git"
-                   :git/sha "COMMIT_SHA"
-                   :deps/root "core"}}}
-```
 
 ## Status
 
 **This library is in alpha state.**  While most of the code was copied
 directly from re-frame, and should be pretty stable, refx's additions
 need more testing, and the API might still change drastically.
+
+## Installation
+
+Releases are available from [Clojars][clojars].
+
+deps.edn:
+
+```edn
+com.fbeyer/refx {:mvn/version "<VERSION>"}
+```
+
+Leiningen/Boot:
+
+```edn
+[com.fbeyer/refx "<VERSION>"]
+```
+
+You can use also use the Git coordinate:
+
+```edn
+{:deps {refx.core {:git/url "https://github.com/ferdinand-beyer/refx.git"
+                   :git/sha "COMMIT_SHA"
+                   :deps/root "core"}}}
+```
 
 ## Rationale
 
@@ -52,6 +71,8 @@ This software uses third-party open-source software.
 See [NOTICE](NOTICE) for individual copyright and license notices.
 
 
+[cljdoc]: https://cljdoc.org/jump/release/com.fbeyer/refx
+[clojars]: https://clojars.org/com.fbeyer/refx
 [re-frame]: https://github.com/day8/re-frame
 [reagent]: https://github.com/reagent-project/reagent
 [uix]: https://github.com/roman01la/uix
