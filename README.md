@@ -21,13 +21,13 @@ Releases are available from [Clojars][clojars].
 deps.edn:
 
 ```edn
-com.fbeyer/refx {:mvn/version "<VERSION>"}
+com.fbeyer/refx {:mvn/version "0.0.49"}
 ```
 
 Leiningen/Boot:
 
 ```edn
-[com.fbeyer/refx "<VERSION>"]
+[com.fbeyer/refx "0.0.49"]
 ```
 
 You can use also use the Git coordinate:
