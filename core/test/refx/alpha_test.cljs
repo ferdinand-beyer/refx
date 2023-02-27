@@ -20,14 +20,14 @@
                :y 1
                :z 2}]
     (reset! app-db store)
-    (testing "forward arrow syntax"
+    (testing ":-> syntax"
       (rf/reg-sub :x :-> :x)
       (rf/reg-sub :y :-> :y)
       (rf/reg-sub :z :-> :z)
-      (doseq [sym (keys store)]
-        (is (= (store sym)
-               @(rf/sub [sym])))))
-    (testing "reverse arrow syntax"
+      (doseq [query-id (keys store)]
+        (is (= (store query-id)
+               @(rf/sub [query-id])))))
+    (testing ":<- syntax"
       ;; Note: the subscriptions for :x, :y, and :z are defined above.
       (rf/reg-sub
        :complex
@@ -35,9 +35,7 @@
        :<- [:y]
        :<- [:z]
        :-> (partial reduce +))
-      (let [expected (reduce + (vals store))
-            actual   (rf/sub [:complex])]
-        (is (= expected @actual))))
+      (is (= (reduce + (vals store)) @(rf/sub [:complex]))))
     (testing "explicit input function provided"
       (rf/reg-sub
        :complex-explicit
@@ -47,14 +45,10 @@
           (rf/sub [:z])])
        (fn [[x y z] _]
          (+ x y z)))
-      (let [expected (reduce + (vals store))
-            actual   (rf/sub [:complex-explicit])]
-        (is (= expected @actual))))
-    (testing "special forward arrow syntax"
+      (is (= (reduce + (vals store)) @(rf/sub [:complex-explicit]))))
+    (testing ":=> syntax"
       (rf/reg-sub
        :sum
        :=> (fn [_ & qs]
              (reduce + qs)))
-      (let [expected (+ 1 2 3)
-            actual   (rf/sub [:sum 1 2 3])]
-        (is (= expected @actual))))))
+      (is (= (+ 1 2 3) @(rf/sub [:sum 1 2 3]))))))
