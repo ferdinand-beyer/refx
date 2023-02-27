@@ -80,19 +80,23 @@
                            [qs op]))
                        [[] nil]
                        (partition-all 2 args))]
-    [(when (seq qs) (apply <- qs)) f]))
+    [(if (seq qs)
+       (apply <- qs)
+       (constantly app-db))
+     f]))
 
 (defn reg-sub
   ([query-id compute-fn]
-   (reg-sub query-id (constantly app-db) compute-fn))
+   (subs/register query-id (constantly app-db) compute-fn))
   ([query-id input-fn compute-fn]
-   (subs/register query-id input-fn compute-fn))
-  ;; re-frame compat
+   (if (keyword? input-fn)
+     ;; If we have a keyword, attempt parsing syntax sugar.
+     (let [[input-fn compute-fn] (parse-reg-sub-sugar [input-fn compute-fn])]
+       (subs/register query-id input-fn compute-fn))
+     (subs/register query-id input-fn compute-fn)))
   ([query-id x y z & args]
    (let [[input-fn compute-fn] (parse-reg-sub-sugar (list* x y z args))]
-     (if input-fn
-       (reg-sub query-id input-fn compute-fn)
-       (reg-sub query-id compute-fn)))))
+     (subs/register query-id input-fn compute-fn))))
 
 #?(:cljs
    (defn use-sub [query-v]
