@@ -5,6 +5,28 @@
 
 (def kind :sub)
 
+;; --- batch processing -------------------------------------------------------
+
+(defonce ^:private batch-notify-counter (atom 0))
+(defonce ^:private batch-notify-fns (atom []))
+
+(defn start-batch-update! []
+  (swap! batch-notify-counter inc))
+
+(defn end-batch-update! []
+  (swap! batch-notify-counter dec)
+  (when (zero? @batch-notify-counter)
+    (let [notify-fns @batch-notify-fns]
+      (reset! batch-notify-fns [])
+      (doseq [notify-fn notify-fns]
+        (notify-fn)))))
+
+(defn- batch-notify [listeners]
+  (letfn [(notify-fn [] (.notify listeners))]
+    (if (pos? @batch-notify-counter)
+      (swap! batch-notify-fns conj notify-fn)
+      (notify-fn))))
+
 ;; --- signals ----------------------------------------------------------------
 
 (defprotocol ISignal
@@ -143,7 +165,7 @@
       (set! dirty? false)
       (when (not= value new-value)
         (set! value new-value)
-        (.notify listeners))))
+        (batch-notify listeners))))
 
   #?@(:cljs
       [IDeref
@@ -215,8 +237,8 @@
         (-remove-listener value-sub this))
       (set! value-sub (or (cache-lookup qv)
                           (handler-fn qv)))
-      (-add-listener value-sub this #(.notify listeners))
-      (.notify listeners)))
+      (-add-listener value-sub this #(batch-notify listeners))
+      (batch-notify listeners)))
 
   #?@(:cljs
       [IEquiv

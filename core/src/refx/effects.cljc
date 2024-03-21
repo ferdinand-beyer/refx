@@ -5,7 +5,8 @@
             [refx.interop :as interop]
             [refx.log :as log]
             [refx.registry :as registry]
-            [refx.db :refer [app-db]]))
+            [refx.db :refer [app-db]]
+            [refx.subs :as subs]))
 
 (def kind :fx)
 
@@ -19,7 +20,9 @@
 
 (defn- db-effect [db]
   (when-not (identical? @app-db db)
-    (reset! app-db db)))
+    (subs/start-batch-update!)
+    (reset! app-db db)
+    (subs/end-batch-update!)))
 
 (def do-fx
   "An interceptor whose `:after` actions the contents of `:effects`. As a result,
