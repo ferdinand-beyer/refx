@@ -143,7 +143,7 @@
       (set! dirty? false)
       (when (not= value new-value)
         (set! value new-value)
-        ;; Notify listeners on next tick so that all subs get updated before react rerenders
+        ;; Notify listeners on next tick so that all subs are updated before re-renders
         (interop/next-tick #(.notify listeners)))))
 
   #?@(:cljs
@@ -217,7 +217,8 @@
       (set! value-sub (or (cache-lookup qv)
                           (handler-fn qv)))
       (-add-listener value-sub this #(.notify listeners))
-      (.notify listeners)))
+      ;; Notify listeners on next tick so that all subs are updated before re-renders
+      (interop/next-tick #(.notify listeners))))
 
   #?@(:cljs
       [IEquiv
