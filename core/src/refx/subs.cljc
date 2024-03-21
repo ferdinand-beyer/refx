@@ -143,7 +143,8 @@
       (set! dirty? false)
       (when (not= value new-value)
         (set! value new-value)
-        (.notify listeners))))
+        ;; Notify listeners on next tick so that all subs get updated before react rerenders
+        (interop/next-tick #(.notify listeners)))))
 
   #?@(:cljs
       [IDeref
