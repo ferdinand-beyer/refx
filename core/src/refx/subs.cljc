@@ -7,24 +7,31 @@
 
 ;; --- batch processing -------------------------------------------------------
 
-(defonce ^:private batch-notify-counter (atom 0))
-(defonce ^:private batch-notify-fns (atom []))
+(defonce ^:private batch-notify-state (atom {:counter 0 :fns []}))
 
 (defn start-batch-update! []
-  (swap! batch-notify-counter inc))
+  (swap! batch-notify-state update :counter inc))
 
 (defn end-batch-update! []
-  (swap! batch-notify-counter dec)
-  (when (zero? @batch-notify-counter)
-    (let [notify-fns @batch-notify-fns]
-      (reset! batch-notify-fns [])
-      (doseq [notify-fn notify-fns]
-        (notify-fn)))))
+  (let [notify-fns (atom nil)]
+    (swap! batch-notify-state (fn [state]
+                                (let [new-counter (dec (:counter state))]
+                                  (if (zero? new-counter)
+                                    (do (reset! notify-fns (:fns state))
+                                        {:counter 0 :fns []})
+                                    (assoc state :counter new-counter)))))
+    (doseq [notify-fn @notify-fns]
+      (notify-fn))))
 
 (defn- batch-notify [listeners]
-  (letfn [(notify-fn [] (.notify listeners))]
-    (if (pos? @batch-notify-counter)
-      (swap! batch-notify-fns conj notify-fn)
+  (let [immediate-notify-fn (atom nil)]
+    (swap! batch-notify-state (fn [{:keys [counter] :as state}]
+                                (letfn [(notify-fn [] (.notify listeners))]
+                                  (if (zero? counter)
+                                    (do (reset! immediate-notify-fn notify-fn)
+                                        state)
+                                    (update state :fns conj notify-fn)))))
+    (when-let [notify-fn @immediate-notify-fn]
       (notify-fn))))
 
 ;; --- signals ----------------------------------------------------------------
