@@ -77,7 +77,7 @@
     (dispose! sub)))
 
 (defonce ^:private listeners-state
-  (atom {:counter 0 :pending (sorted-map)}))
+  (atom {:counter 0 :pending (sorted-map-by :index)}))
 
 (defn- invoke-listener
   "This function is responsible for ensuring that signal listeners
@@ -103,7 +103,7 @@
                                   (if (zero? counter)
                                     (do
                                       (reset! listener-fns pending)
-                                      (assoc new-state :pending (sorted-map)))
+                                      (assoc new-state :pending (sorted-map-by :index)))
                                     new-state))))
        (doseq [[_ f] @listener-fns]
          (f))))))
