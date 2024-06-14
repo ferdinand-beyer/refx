@@ -103,7 +103,7 @@
                                   (if (zero? counter)
                                     (do
                                       (reset! listener-fns pending)
-                                      (assoc new-state :pending (sorted-map-by :index)))
+                                      (update new-state :pending empty))
                                     new-state))))
        (doseq [[_ f] @listener-fns]
          (f))))))
