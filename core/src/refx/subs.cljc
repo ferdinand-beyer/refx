@@ -86,27 +86,31 @@
   were registered. This function ensures that one db update will only trigger
   a single render."
   [listener-key listener-fn]
-  (swap! listeners-state (fn [state]
-                           (cond-> (update state :counter inc)
-                             (not (signal? listener-key))
-                             (update :pending assoc listener-key listener-fn))))
+  (let [listener-fn-this-tick (atom nil)]
+    (swap! listeners-state (fn [state]
+                             (let [new-state (update state :counter inc)]
+                               (if (signal? listener-key)
+                                 ;; For the case of DynamicSub, we need to call its
+                                 ;; listener this tick to trigger dependent subs
+                                 (do (reset! listener-fn-this-tick listener-fn)
+                                     new-state)
+                                 (update new-state :pending assoc listener-key listener-fn)))))
 
-  (when (signal? listener-key)
-    (listener-fn))
+    (when-let [f @listener-fn-this-tick]
+      (f))
 
-  (interop/next-tick
-   (fn []
-     (let [listener-fns (atom nil)]
-       (swap! listeners-state (fn [state]
-                                (let [{:keys [counter pending] :as new-state}
-                                      (update state :counter dec)]
-                                  (if (zero? counter)
-                                    (do
-                                      (reset! listener-fns pending)
-                                      (update new-state :pending empty))
-                                    new-state))))
-       (doseq [[_ f] @listener-fns]
-         (f))))))
+    (interop/next-tick
+     (fn []
+       (let [listener-fns (atom nil)]
+         (swap! listeners-state (fn [state]
+                                  (let [{:keys [counter pending] :as new-state}
+                                        (update state :counter dec)]
+                                    (if (zero? counter)
+                                      (do (reset! listener-fns pending)
+                                          (update new-state :pending empty))
+                                      new-state))))
+         (doseq [[_ f] @listener-fns]
+           (f)))))))
 
 (deftype Listeners [^:mutable listeners]
   Object
