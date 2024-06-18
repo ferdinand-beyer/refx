@@ -77,7 +77,9 @@
     (dispose! sub)))
 
 (defonce ^:private listeners-state
-  (atom {:counter 0 :pending (sorted-map-by :index)}))
+  (letfn [(comparator [a b]
+            (compare (:index b) (:index a)))]
+    (atom {:counter 0 :pending (sorted-map-by comparator)})))
 
 (defn- invoke-listener
   "This function is responsible for ensuring that signal listeners
