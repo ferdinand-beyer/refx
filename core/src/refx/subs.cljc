@@ -78,7 +78,7 @@
 
 (defonce ^:private listeners-state
   (letfn [(comparator [a b]
-            (compare (:index b) (:index a)))]
+            (compare (:index a) (:index b)))]
     (atom {:counter 0 :pending (sorted-map-by comparator)})))
 
 (defn- invoke-listener

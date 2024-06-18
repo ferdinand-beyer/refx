@@ -116,7 +116,7 @@
           sub-c (subs/sub [:c])
           sub-d (subs/sub [:d])
           listener-count (atom 0)
-          listener-calls (atom '())
+          listener-calls (atom [])
           remove-listener-fns (atom '())
           add-listener! (fn [sub]
                           (let [key {:index (swap! listener-count inc)}]
@@ -134,9 +134,9 @@
       (async done
              (js/setTimeout (fn []
                               (is (= @listener-calls
-                                     '({:index 1}
-                                       {:index 2}
-                                       {:index 3}
-                                       {:index 4})))
+                                     [{:index 1}
+                                      {:index 2}
+                                      {:index 3}
+                                      {:index 4}]))
                               (done))
                             10)))))
