@@ -78,7 +78,7 @@
 
 (defonce ^:private listeners-state
   (letfn [(comparator [a b]
-            (compare (:index a) (:index b)))]
+            (compare (::index a) (::index b)))]
     (atom {:counter 0 :pending (sorted-map-by comparator)})))
 
 (defn- invoke-listener
@@ -103,16 +103,20 @@
 
     (interop/next-tick
      (fn []
-       (let [listener-fns (atom nil)]
-         (swap! listeners-state (fn [state]
-                                  (let [{:keys [counter pending] :as new-state}
-                                        (update state :counter dec)]
-                                    (if (zero? counter)
-                                      (do (reset! listener-fns pending)
-                                          (update new-state :pending empty))
-                                      new-state))))
-         (doseq [[_ f] @listener-fns]
-           (f)))))))
+       (let [{:keys [counter pending]}
+             (swap! listeners-state update :counter dec)]
+
+         (when (zero? counter)
+           (doseq [[listener-key _] pending]
+             ;; Triggering a listener-fn can result in a subsequent sub's
+             ;; remove-listener to be called (which will remove it from pending).
+             ;; This check ensure it's still pending.
+             (let [listener-fn (atom nil)]
+               (swap! listeners-state (fn [state]
+                                        (reset! listener-fn (get-in state [:pending listener-key]))
+                                        (update state :pending dissoc listener-key)))
+               (when-let [f @listener-fn]
+                 (f))))))))))
 
 (deftype Listeners [^:mutable listeners]
   Object
@@ -160,6 +164,8 @@
   (-add-listener [_ k f]
     (.add listeners k f))
   (-remove-listener [this k]
+    (when-not (signal? k)
+      (swap! listeners-state update :pending dissoc k))
     (.remove listeners k)
     (when (.empty? listeners)
       (sub-orphaned this)))
@@ -238,6 +244,8 @@
   (-add-listener [_ k f]
     (.add listeners k f))
   (-remove-listener [this k]
+    (when-not (signal? k)
+      (swap! listeners-state update :pending dissoc k))
     (.remove listeners k)
     (when (.empty? listeners)
       (sub-orphaned this)))

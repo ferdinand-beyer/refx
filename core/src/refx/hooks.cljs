@@ -28,7 +28,7 @@
         (react/useMemo
          (fn []
            [(fn [callback]
-              (let [key {:index (swap! use-sub-counter inc)}]
+              (let [key {::subs/index (swap! use-sub-counter inc)}]
                 (subs/-add-listener sub key callback)
                 #(subs/-remove-listener sub key)))
             (fn []

@@ -119,7 +119,7 @@
           listener-calls (atom [])
           remove-listener-fns (atom '())
           add-listener! (fn [sub]
-                          (let [key {:index (swap! listener-count inc)}]
+                          (let [key {::subs/index (swap! listener-count inc)}]
                             (subs/-add-listener sub key #(swap! listener-calls conj key))
                             (swap! remove-listener-fns conj #(subs/-remove-listener sub key))))
           remove-listeners! (fn []
@@ -130,13 +130,13 @@
       (add-listener! sub-c)
       (add-listener! sub-d)
       (reset! source 1)
-      (remove-listeners!)
       (async done
              (js/setTimeout (fn []
+                              (remove-listeners!)
                               (is (= @listener-calls
-                                     [{:index 1}
-                                      {:index 2}
-                                      {:index 3}
-                                      {:index 4}]))
+                                     [{::subs/index 1}
+                                      {::subs/index 2}
+                                      {::subs/index 3}
+                                      {::subs/index 4}]))
                               (done))
                             10)))))
