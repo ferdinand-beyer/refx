@@ -104,3 +104,39 @@
                               (is (empty? @subs/sub-cache))
                               (done))
                             10)))))
+
+(deftest listener-ordering
+  (let [source (atom 0)]
+    (subs/register :a (constantly source) identity)
+    (subs/register :b (constantly source) identity)
+    (subs/register :c (constantly (subs/sub [:b (subs/sub [:a])])) identity)
+    (subs/register :d (constantly [(subs/sub [:b]) (subs/sub [:c])]) identity)
+    (let [sub-a (subs/sub [:a])
+          sub-b (subs/sub [:b])
+          sub-c (subs/sub [:c])
+          sub-d (subs/sub [:d])
+          listener-count (atom 0)
+          listener-calls (atom [])
+          remove-listener-fns (atom '())
+          add-listener! (fn [sub]
+                          (let [key {::subs/index (swap! listener-count inc)}]
+                            (subs/-add-listener sub key #(swap! listener-calls conj key))
+                            (swap! remove-listener-fns conj #(subs/-remove-listener sub key))))
+          remove-listeners! (fn []
+                              (doseq [f @remove-listener-fns]
+                                (f)))]
+      (add-listener! sub-a)
+      (add-listener! sub-b)
+      (add-listener! sub-c)
+      (add-listener! sub-d)
+      (reset! source 1)
+      (async done
+             (js/setTimeout (fn []
+                              (remove-listeners!)
+                              (is (= @listener-calls
+                                     [{::subs/index 1}
+                                      {::subs/index 2}
+                                      {::subs/index 3}
+                                      {::subs/index 4}]))
+                              (done))
+                            10)))))

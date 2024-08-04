@@ -76,6 +76,48 @@
   (doseq [[_ sub] @sub-cache]
     (dispose! sub)))
 
+(defonce ^:private listeners-state
+  (letfn [(comparator [a b]
+            (compare (::index a) (::index b)))]
+    (atom {:counter 0 :pending (sorted-map-by comparator)})))
+
+(defn- invoke-listener
+  "This function is responsible for ensuring that signal listeners
+  (from DynamicSubs) are called before triggering regular listeners
+  (eg: added via use-sub hook). Listeners are triggered in the order they
+  were registered. This function ensures that one db update will only trigger
+  a single render."
+  [listener-key listener-fn]
+  (let [listener-fn-this-tick (atom nil)]
+    (swap! listeners-state (fn [state]
+                             (let [new-state (update state :counter inc)]
+                               (if (signal? listener-key)
+                                 ;; For the case of DynamicSub, we need to call its
+                                 ;; listener this tick to trigger dependent subs
+                                 (do (reset! listener-fn-this-tick listener-fn)
+                                     new-state)
+                                 (update new-state :pending assoc listener-key listener-fn)))))
+
+    (when-let [f @listener-fn-this-tick]
+      (f))
+
+    (interop/next-tick
+     (fn []
+       (let [{:keys [counter pending]}
+             (swap! listeners-state update :counter dec)]
+
+         (when (zero? counter)
+           (doseq [[listener-key _] pending]
+             ;; Triggering a listener-fn can result in a subsequent sub's
+             ;; remove-listener to be called (which will remove it from pending).
+             ;; This check ensure it's still pending.
+             (let [listener-fn (atom nil)]
+               (swap! listeners-state (fn [state]
+                                        (reset! listener-fn (get-in state [:pending listener-key]))
+                                        (update state :pending dissoc listener-key)))
+               (when-let [f @listener-fn]
+                 (f))))))))))
+
 (deftype Listeners [^:mutable listeners]
   Object
   (empty? [_] (empty? listeners))
@@ -84,8 +126,8 @@
   (remove [_ k]
     (set! listeners (dissoc listeners k)))
   (notify [_]
-    (doseq [[_ f] listeners]
-      (f))))
+    (doseq [[k f] listeners]
+      (invoke-listener k f))))
 
 (defn- make-listeners []
   (Listeners. nil))
@@ -122,6 +164,8 @@
   (-add-listener [_ k f]
     (.add listeners k f))
   (-remove-listener [this k]
+    (when-not (signal? k)
+      (swap! listeners-state update :pending dissoc k))
     (.remove listeners k)
     (when (.empty? listeners)
       (sub-orphaned this)))
@@ -200,6 +244,8 @@
   (-add-listener [_ k f]
     (.add listeners k f))
   (-remove-listener [this k]
+    (when-not (signal? k)
+      (swap! listeners-state update :pending dissoc k))
     (.remove listeners k)
     (when (.empty? listeners)
       (sub-orphaned this)))
