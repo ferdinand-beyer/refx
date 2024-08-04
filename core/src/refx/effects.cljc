@@ -17,10 +17,6 @@
 
 ;; -- Interceptor -------------------------------------------------------------
 
-(defn- db-effect [db]
-  (when-not (identical? @app-db db)
-    (reset! app-db db)))
-
 (def do-fx
   "An interceptor whose `:after` actions the contents of `:effects`. As a result,
   this interceptor is Domino 3.
@@ -48,10 +44,10 @@
    :after (fn do-fx-after
             [context]
             (let [effects            (:effects context)
-                  effects-without-db (dissoc effects :db)]
-                 ;; :db effect is guaranteed to be handled before all other effects.
+                  effects-without-db (dissoc effects :db)
+                  db-effect          (registry/lookup kind :db)]
+              ;; :db effect is guaranteed to be handled before all other effects.
               (when-let [new-db (:db effects)]
-                ;; TODO: Look it up, since it could change?
                 (db-effect new-db))
               (doseq [[fx-id effect-value] effects-without-db]
                 (if-let [effect-fn (registry/lookup kind fx-id false)]
@@ -175,4 +171,6 @@
 ;;
 (register
  :db
-  db-effect)
+ (fn [db]
+   (when-not (identical? @app-db db)
+     (reset! app-db db))))
